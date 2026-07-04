@@ -56,6 +56,48 @@ $restored = $result->restore($output); // tokens back to original values
 
 Helpers: `anon($text, $scope = null)` and `deanon($text, $map = null, $scope = null)`.
 
+### Sessions: the recommended way for LLM chat
+
+For a chat turn you want one in-memory map shared across every piece of the prompt (user message, retrieved context, tool results), and you want it to vanish when the request ends. That is exactly a **session**: a stateful, throwaway object that owns its own map, persists nothing, and dies with the request. No scope, no vault, no cache.
+
+```php
+use EduLazaro\Laranon\Anonymizer;
+
+$anon = Anonymizer::create();          // the map lives inside $anon
+
+// Anonymize the whole prompt (targets the 'content' key of each message)
+$messages = $anon->anonymize($messages, 'content');
+
+// ...call the model, it decides to use a tool...
+
+// Decode the tool arguments before running the tool (search on real values)
+$args = $anon->deanonymize($response->toolCall, 'arguments');
+$result = runTool($args);
+$messages[] = ['role' => 'tool', 'content' => json_encode($result)];
+$messages = $anon->anonymize($messages, 'content'); // fresh PII, same map
+
+// ...second model call...
+
+// Decode the reply before showing it to the user
+$reply = $anon->deanonymize($response->content);
+// $anon goes out of scope here; the map is gone. Nothing was persisted.
+```
+
+`anonymize()` and `deanonymize()` accept three shapes, all sharing the session's map:
+
+```php
+$anon->anonymize($string);                              // a string
+$anon->anonymize([$a, $b, $c]);                          // a list of strings
+$anon->anonymize($messages, 'content');                 // key in each element
+$anon->anonymize($messages, 'payload.text');            // nested key (dot)
+$anon->anonymize($messages, ['content', 'extra']);      // several keys
+$anon->anonymize($messages, 'tool_calls.*.arguments');  // '*' wildcard (nested lists)
+```
+
+Only the string leaves at the given paths are touched; `role`, ids, tool names, keys and non-string values are left untouched. Missing keys are skipped. `$anon->stream()` gives an SSE-safe deanonymizer bound to the same map (see Streaming).
+
+Because the chat history is stored **deanonymized** (real values), each turn just builds a new session and re-anonymizes the whole prompt from scratch: tokens come out identical (deterministic in reading order), so consistency holds with nothing persisted between turns.
+
 ### Per-word name tokens
 
 Person names are tokenized per WORD, never per person. "María López" becomes `«PER_1» «AP_1»`: the given name and the surname each get their own independent, stable token. Consistency is automatic and no identity is ever guessed:
