@@ -185,12 +185,27 @@ class Anonymizer
     public function anonymize(string $text): AnonymizedText
     {
         $map = $this->loadMap();
-        $strategy = $this->resolveStrategy();
 
         foreach ($this->presets as $preset) {
-            $map->preset($preset['type'], $preset['value'], $strategy, $preset['id']);
+            $map->preset($preset['type'], $preset['value'], $this->resolveStrategy(), $preset['id']);
         }
 
+        $text = $this->anonymizeString($text, $map);
+
+        $this->persistMap($map);
+
+        return new AnonymizedText($text, $map);
+    }
+
+    /**
+     * Anonymize a string, accumulating into the given TokenMap (mutated in
+     * place). No vault, no scope: the caller owns the map. This is the engine
+     * a stateful AnonymizerSession runs on, so several strings of one prompt
+     * share one in-memory map and stay consistent.
+     */
+    public function anonymizeString(string $text, TokenMap $map): string
+    {
+        $strategy = $this->resolveStrategy();
         $spans = $this->scan($text, $map);
 
         // Assign tokens in reading order (so «PER_1» is the first name seen),
@@ -205,9 +220,27 @@ class Anonymizer
             $text = substr_replace($text, $replacements[$i], $span->start, $span->length);
         }
 
-        $this->persistMap($map);
+        return $text;
+    }
 
-        return new AnonymizedText($text, $map);
+    /**
+     * Start a stateful, throwaway session that holds its own in-memory map.
+     * The natural fit for a chat turn: anonymize the whole prompt, run tools,
+     * deanonymize the response, then let it die with the request. Nothing is
+     * persisted anywhere. See AnonymizerSession.
+     */
+    public function newSession(): AnonymizerSession
+    {
+        return new AnonymizerSession($this, new TokenMap(), $this->tokenOpen, $this->tokenClose);
+    }
+
+    /**
+     * Convenience factory: a session from the container-configured anonymizer.
+     * `$anon = Anonymizer::create();`
+     */
+    public static function create(): AnonymizerSession
+    {
+        return app('laranon')->newSession();
     }
 
     /**
