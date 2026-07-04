@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 /**
  * Registers Http::scrubPii(): a request middleware that redacts PII from the
  * outbound body before it leaves the server. One-way by design; use the
- * anonymize/deanonymize round-trip when the response must be restored.
+ * anonymize/restore round-trip when the response must be restored.
  */
 class HttpMacro
 {

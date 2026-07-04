@@ -6,7 +6,7 @@ use EduLazaro\Laranon\Contracts\VaultStore;
 
 /**
  * In-memory store: maps live only for the current request. The default when
- * anonymize/deanonymize happen within the same call and nothing must persist.
+ * anonymize/restore happen within the same call and nothing must persist.
  */
 class ArrayVaultStore implements VaultStore
 {

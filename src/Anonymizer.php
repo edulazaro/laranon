@@ -226,7 +226,7 @@ class Anonymizer
     /**
      * Start a stateful, throwaway session that holds its own in-memory map.
      * The natural fit for a chat turn: anonymize the whole prompt, run tools,
-     * deanonymize the response, then let it die with the request. Nothing is
+     * restore the response, then let it die with the request. Nothing is
      * persisted anywhere. See AnonymizerSession.
      */
     public function newSession(): AnonymizerSession
@@ -357,7 +357,7 @@ class Anonymizer
      * Replace tokens back with their original values. Accepts a TokenMap,
      * an AnonymizedText, a raw entries array, or null to load from the scope.
      */
-    public function deanonymize(string $text, TokenMap|AnonymizedText|array|null $map = null): string
+    public function restore(string $text, TokenMap|AnonymizedText|array|null $map = null): string
     {
         return match (true) {
             $map instanceof TokenMap => $map->restore($text),
@@ -368,7 +368,7 @@ class Anonymizer
     }
 
     /**
-     * Streaming-safe deanonymizer: push chunks as they arrive (SSE) and
+     * Streaming-safe restorer: push chunks as they arrive (SSE) and
      * tokens split across chunk boundaries are still restored.
      */
     public function stream(TokenMap|AnonymizedText|null $map = null): StreamDeanonymizer

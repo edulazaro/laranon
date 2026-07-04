@@ -19,6 +19,6 @@ if (! function_exists('deanon')) {
      */
     function deanon(string $text, TokenMap|AnonymizedText|array|null $map = null, ?string $scope = null): string
     {
-        return app('laranon')->scope($scope)->deanonymize($text, $map);
+        return app('laranon')->scope($scope)->restore($text, $map);
     }
 }

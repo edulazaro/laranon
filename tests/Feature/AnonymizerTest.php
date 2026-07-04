@@ -43,7 +43,7 @@ class AnonymizerTest extends TestCase
 
         $this->assertSame(
             'Los DNI son 12345678Z y 87654321X.',
-            $this->anonymizer()->scope('chat-1')->deanonymize('Los DNI son «DNI_1» y «DNI_2».'),
+            $this->anonymizer()->scope('chat-1')->restore('Los DNI son «DNI_1» y «DNI_2».'),
         );
     }
 

@@ -15,7 +15,7 @@ class AnonymizerSessionTest extends TestCase
 
         $this->assertStringNotContainsString('María', $text);
         $this->assertStringNotContainsString('12345678Z', $text);
-        $this->assertSame('El DNI de María López es 12345678Z.', $anon->deanonymize($text));
+        $this->assertSame('El DNI de María López es 12345678Z.', $anon->restore($text));
     }
 
     public function test_one_map_is_shared_across_calls(): void
@@ -31,7 +31,7 @@ class AnonymizerSessionTest extends TestCase
         $this->assertStringContainsString('«PER_2»', $a);
         $this->assertStringContainsString('«PER_2»', $b);
 
-        $this->assertSame('María confirmó los datos.', $anon->deanonymize($b));
+        $this->assertSame('María confirmó los datos.', $anon->restore($b));
     }
 
     public function test_list_of_strings(): void
@@ -42,8 +42,8 @@ class AnonymizerSessionTest extends TestCase
 
         $this->assertStringNotContainsString('12345678Z', $a);
         $this->assertStringNotContainsString('maria@example.com', $b);
-        $this->assertSame('DNI 12345678Z', $anon->deanonymize($a));
-        $this->assertSame('correo maria@example.com', $anon->deanonymize($b));
+        $this->assertSame('DNI 12345678Z', $anon->restore($a));
+        $this->assertSame('correo maria@example.com', $anon->restore($b));
     }
 
     public function test_structure_with_a_single_key(): void
@@ -63,7 +63,7 @@ class AnonymizerSessionTest extends TestCase
 
         // Reverse the assistant reply built on the same session.
         $reply = '«PER_1» «AP_1» reclama 4.000 €.';
-        $this->assertSame('María López reclama 4.000 €.', $anon->deanonymize($reply));
+        $this->assertSame('María López reclama 4.000 €.', $anon->restore($reply));
     }
 
     public function test_nested_dot_key(): void
@@ -75,7 +75,7 @@ class AnonymizerSessionTest extends TestCase
         $out = $anon->anonymize($items, 'payload.text');
 
         $this->assertStringNotContainsString('María', $out[0]['payload']['text']);
-        $this->assertSame('Titular: María López', $anon->deanonymize($out[0]['payload']['text']));
+        $this->assertSame('Titular: María López', $anon->restore($out[0]['payload']['text']));
     }
 
     public function test_wildcard_key_covers_tool_call_arguments(): void
@@ -98,7 +98,7 @@ class AnonymizerSessionTest extends TestCase
         $this->assertSame('buscar', $out[0]['tool_calls'][0]['name']);
 
         // Deanonymize the args symmetrically before running the tool.
-        $back = $anon->deanonymize($out, 'tool_calls.*.arguments');
+        $back = $anon->restore($out, 'tool_calls.*.arguments');
         $this->assertSame('nombre: María López', $back[0]['tool_calls'][0]['arguments']);
         $this->assertSame('dni: 12345678Z', $back[0]['tool_calls'][1]['arguments']);
     }
@@ -138,11 +138,11 @@ class AnonymizerSessionTest extends TestCase
         $messages = $anon->anonymize($messages, 'content');
         $this->assertStringNotContainsString('12345678Z', $messages[2]['content']);
 
-        // 3. Model reply (tokens only) -> deanonymize for the user.
+        // 3. Model reply (tokens only) -> restore for the user.
         $reply = '«PER_1» «AP_1» reclama 4.000 € y su DNI es «DNI_1».';
         $this->assertSame(
             'María López reclama 4.000 € y su DNI es 12345678Z.',
-            $anon->deanonymize($reply),
+            $anon->restore($reply),
         );
     }
 }

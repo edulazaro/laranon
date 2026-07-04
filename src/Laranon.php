@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \EduLazaro\Laranon\Anonymizer ttl(?int $seconds)
  * @method static \EduLazaro\Laranon\Support\AnonymizedText anonymize(string $text)
  * @method static array scan(string $text)
- * @method static string deanonymize(string $text, \EduLazaro\Laranon\Support\TokenMap|\EduLazaro\Laranon\Support\AnonymizedText|array|null $map = null)
+ * @method static string restore(string $text, \EduLazaro\Laranon\Support\TokenMap|\EduLazaro\Laranon\Support\AnonymizedText|array|null $map = null)
  * @method static \EduLazaro\Laranon\Streaming\StreamDeanonymizer stream(\EduLazaro\Laranon\Support\TokenMap|\EduLazaro\Laranon\Support\AnonymizedText|null $map = null)
  * @method static void forget()
  * @method static \EduLazaro\Laranon\AnonymizerSession newSession()

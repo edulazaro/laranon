@@ -14,10 +14,10 @@ use EduLazaro\Laranon\Support\TokenMap;
  *
  *     $anon = Anonymizer::create();
  *     $messages = $anon->anonymize($messages, 'content');   // whole prompt
- *     $args     = $anon->deanonymize($toolCall, 'arguments'); // before running a tool
- *     $reply    = $anon->deanonymize($response);              // before showing it
+ *     $args     = $anon->restore($toolCall, 'arguments'); // before running a tool
+ *     $reply    = $anon->restore($response);              // before showing it
  *
- * anonymize()/deanonymize() accept:
+ * anonymize()/restore() accept:
  *   - a string                      -> returns the transformed string
  *   - a list of strings             -> returns the transformed list
  *   - a list of arrays + key(s)     -> transforms the value at each dot-path
@@ -51,13 +51,13 @@ class AnonymizerSession
      * @param string|array<int, string>|null $keys
      * @return string|array
      */
-    public function deanonymize(string|array $input, string|array|null $keys = null): string|array
+    public function restore(string|array $input, string|array|null $keys = null): string|array
     {
         return $this->transform($input, $keys, fn (string $s): string => $this->map->restore($s));
     }
 
     /**
-     * Streaming-safe deanonymizer bound to this session's map (SSE chunks).
+     * Streaming-safe restorer bound to this session's map (SSE chunks).
      */
     public function stream(): StreamDeanonymizer
     {

@@ -8,11 +8,11 @@ Reversible PII anonymization for Laravel. Detect personal data (Spanish and Engl
 use EduLazaro\Laranon\Laranon;
 
 $result = Laranon::scope("chat-{$sessionId}")->anonymize(
-    'La clienta María García, DNI 12345678Z, reclama el ingreso en ES91 2100 0418 4502 0005 1332.'
+    'Our client John Smith, SSN 536-90-4399, requests the transfer to GB29 NWBK 6016 1331 9268 19.'
 );
 
 $result->text;
-// "La clienta «PER_1» «AP_1», DNI «DNI_1», reclama el ingreso en «IBAN_1»."
+// "Our client «PER_1» «AP_1», SSN «SSN_1», requests the transfer to «IBAN_1»."
 
 $llmResponse = $chat->send($result->text);
 
@@ -23,7 +23,7 @@ $result->restore($llmResponse);
 ## Why it is different
 
 - **Checksum validation, not just regexes.** DNI (mod-23 letter), NIE, CIF, IBAN (mod-97), credit cards (Luhn plus IIN), NSS, CCC. A `12345678A` with a wrong control letter is *not* flagged, which crushes false positives.
-- **Per-word name tokens.** Person names are tokenized per word, never per person: "María" always yields the same token wherever it appears, with zero identity guessing. See below.
+- **Per-word name tokens.** Person names are tokenized per word, never per person: "John" always yields the same token wherever it appears, with zero identity guessing. See below.
 - **Stable scoped tokens.** Within a scope (a conversation, a case), the same value always becomes the same token, across every call, so multi-turn chats stay coherent and can be restored at any point.
 - **Replacements never repeat.** The token map guarantees that two different values never share a replacement, whatever the strategy generates. A shared surrogate would merge two people and garble restoration.
 - **Known entities.** Feed the values you already have (client emails, phones, company names) for exact, total-recall matching where it matters most.
@@ -71,7 +71,7 @@ $messages = $anon->anonymize($messages, 'content');
 // ...call the model, it decides to use a tool...
 
 // Decode the tool arguments before running the tool (search on real values)
-$args = $anon->deanonymize($response->toolCall, 'arguments');
+$args = $anon->restore($response->toolCall, 'arguments');
 $result = runTool($args);
 $messages[] = ['role' => 'tool', 'content' => json_encode($result)];
 $messages = $anon->anonymize($messages, 'content'); // fresh PII, same map
@@ -79,11 +79,11 @@ $messages = $anon->anonymize($messages, 'content'); // fresh PII, same map
 // ...second model call...
 
 // Decode the reply before showing it to the user
-$reply = $anon->deanonymize($response->content);
+$reply = $anon->restore($response->content);
 // $anon goes out of scope here; the map is gone. Nothing was persisted.
 ```
 
-`anonymize()` and `deanonymize()` accept three shapes, all sharing the session's map:
+`anonymize()` and `restore()` accept three shapes, all sharing the session's map:
 
 ```php
 $anon->anonymize($string);                              // a string
@@ -94,39 +94,39 @@ $anon->anonymize($messages, ['content', 'extra']);      // several keys
 $anon->anonymize($messages, 'tool_calls.*.arguments');  // '*' wildcard (nested lists)
 ```
 
-Only the string leaves at the given paths are touched; `role`, ids, tool names, keys and non-string values are left untouched. Missing keys are skipped. `$anon->stream()` gives an SSE-safe deanonymizer bound to the same map (see Streaming).
+Only the string leaves at the given paths are touched; `role`, ids, tool names, keys and non-string values are left untouched. Missing keys are skipped. `$anon->stream()` gives an SSE-safe restorer bound to the same map (see Streaming).
 
-Because the chat history is stored **deanonymized** (real values), each turn just builds a new session and re-anonymizes the whole prompt from scratch: tokens come out identical (deterministic in reading order), so consistency holds with nothing persisted between turns.
+Because the chat history is stored **in the clear** (real values), each turn just builds a new session and re-anonymizes the whole prompt from scratch: tokens come out identical (deterministic in reading order), so consistency holds with nothing persisted between turns.
 
 ### Per-word name tokens
 
-Person names are tokenized per WORD, never per person. "María López" becomes `«PER_1» «AP_1»`: the given name and the surname each get their own independent, stable token. Consistency is automatic and no identity is ever guessed:
+Person names are tokenized per WORD, never per person. "John Smith" becomes `«PER_1» «AP_1»`: the given name and the surname each get their own independent, stable token. Consistency is automatic and no identity is ever guessed:
 
-- A later bare "María" (same text or a later call in the same scope) gets `«PER_1»` again. The token belongs to the word, not to a person, so it is correct by construction.
-- "María Fernández" becomes `«PER_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
-- "el Sr. García" becomes "el Sr. `«AP_1»`", sharing the token of the "García" in "María García". Honorifics themselves stay in cleartext.
-- Grammatical particles stay in cleartext too: "María de la Fuente" reads `«PER_1» de la «AP_1»`.
+- A later bare "John" (same text or a later call in the same scope) gets `«PER_1»` again. The token belongs to the word, not to a person, so it is correct by construction.
+- "John Baker" becomes `«PER_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
+- "Mr. Baker" becomes "Mr. `«AP_2»`", sharing the token of the "Baker" in "John Baker". Honorifics themselves stay in cleartext.
+- Grammatical particles stay in cleartext too: "John de la Cruz" reads `«PER_1» de la «AP_3»`.
 - Restoration is exact: each token maps back to the literal word.
 
-Honorific conventions drive the typing of lone words: `Sr./Sra./Dr./Mr./Mrs.` introduce a surname ("Sr. García", "Mr. Smith"), while `D./Dña./Don/Doña/Sir/Lady` introduce a given name ("Doña Luz", "Sir Ian"). With several words, the first is the given name and the rest are surnames ("D. Juan Pérez García", "Mr. James Miller").
+Honorific conventions drive the typing of lone words: `Mr./Mrs./Dr./Sr./Sra.` introduce a surname ("Mr. Smith", "Sr. García"), while `D./Dña./Don/Doña/Sir/Lady` introduce a given name ("Sir Ian", "Doña Luz"). With several words, the first is the given name and the rest are surnames ("Mr. James Miller", "D. Juan Pérez García").
 
 ### Scopes: stable tokens across turns
 
 ```php
 // Turn 1
-Laranon::scope('chat-42')->anonymize('DNI 12345678Z');    // «DNI_1»
+Laranon::scope('chat-42')->anonymize('SSN 536-90-4399');      // «SSN_1»
 
 // Turn 2: same value, same token
-Laranon::scope('chat-42')->anonymize('Consta 12345678Z'); // «DNI_1»
+Laranon::scope('chat-42')->anonymize('On file: 536-90-4399'); // «SSN_1»
 
 // Restore later without carrying the map around
-Laranon::scope('chat-42')->deanonymize($llmResponse);
+Laranon::scope('chat-42')->restore($llmResponse);
 
 // Drop the map: pseudonymization becomes effective anonymization
 Laranon::scope('chat-42')->forget();
 ```
 
-Scoped maps persist encrypted (app key) in the configured vault: `cache` (default, TTL-expiring), `database` (survives days, for queued jobs) or `array` (single request). Each `anonymize()` call scans only the new text; name words already tokenized in the scope are swept in that new text as exact, word-bounded literals, so a bare "María" in turn 5 reuses the token established in turn 1.
+Scoped maps persist encrypted (app key) in the configured vault: `cache` (default, TTL-expiring), `database` (survives days, for queued jobs) or `array` (single request). Each `anonymize()` call scans only the new text; name words already tokenized in the scope are swept in that new text as exact, word-bounded literals, so a bare "John" in turn 5 reuses the token established in turn 1.
 
 ### Strategies
 
@@ -143,8 +143,8 @@ Laranon::strategy('redact')->anonymize($text); // [DNI], one-way, nothing vaulte
 
 ```php
 Laranon::withEntities([
-    ['value' => 'Clínicas Estetik SL', 'type' => 'entity'],
-    ['value' => 'maria@cliente.com', 'type' => 'email'],
+    ['value' => 'Acme Health Ltd', 'type' => 'entity'],
+    ['value' => 'jane@client.com', 'type' => 'email'],
 ])->anonymize($text);
 ```
 
