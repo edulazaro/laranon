@@ -15,7 +15,9 @@ class DniRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])\d{8}\s?-?\s?[A-Za-z](?![\dA-Za-z])/' => 1.0,
+            // 8 digits (optionally dotted as thousands, "12.345.678"), then the
+            // control letter. The checksum validates after stripping separators.
+            '/(?<![\dA-Za-z])(?:\d{2}\.\d{3}\.\d{3}|\d{8})\s?-?\s?[A-Za-z](?![\dA-Za-z])/' => 1.0,
         ];
     }
 

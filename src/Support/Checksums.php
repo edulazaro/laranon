@@ -20,7 +20,7 @@ final class Checksums
      */
     public static function dni(string $value): bool
     {
-        $value = strtoupper(preg_replace('/[\s\-]/', '', $value));
+        $value = strtoupper(preg_replace('/[\s\-.]/', '', $value));
 
         if (! preg_match('/^(\d{8})([A-Z])$/', $value, $m)) {
             return false;
@@ -35,7 +35,7 @@ final class Checksums
      */
     public static function nie(string $value): bool
     {
-        $value = strtoupper(preg_replace('/[\s\-]/', '', $value));
+        $value = strtoupper(preg_replace('/[\s\-.]/', '', $value));
 
         if (! preg_match('/^([XYZ])(\d{7})([A-Z])$/', $value, $m)) {
             return false;

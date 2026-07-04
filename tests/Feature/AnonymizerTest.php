@@ -100,6 +100,63 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_phone_formats_bare_spaced_and_international(): void
+    {
+        $phones = [
+            '600123123',          // bare mobile, no separators
+            '600 123 123',        // bare mobile, 3-3-3
+            '600 12 31 23',       // bare mobile, 3-2-2-2
+            '600-12-31-23',       // bare mobile, hyphens
+            '915 123 456',        // bare landline
+            '+34 612 345 678',    // Spain, prefixed
+            '+34612345678',       // Spain, prefixed no separators
+            '0034 600 123 123',   // Spain, 00 prefix
+            '+376 812 345',       // Andorra, prefixed
+            '+44 20 7946 0958',   // UK, prefixed
+            '+33 6 12 34 56 78',  // France, prefixed
+        ];
+
+        foreach ($phones as $phone) {
+            $text = "Contacto: {$phone}.";
+            $result = $this->anonymizer()->anonymize($text);
+
+            // The WHOLE number (prefix included) collapses into a single token.
+            $this->assertSame("Contacto: «TEL_1».", $result->text, "no tokenizó completo: {$phone}");
+            $this->assertSame($text, $result->restore($result->text), "no restaura: {$phone}");
+        }
+    }
+
+    public function test_plain_numbers_are_not_mistaken_for_phones(): void
+    {
+        // A short quantity and a decimal must not be swallowed as phones.
+        $result = $this->anonymizer()->anonymize('Compró 600 unidades por 1.234,56 euros.');
+
+        $this->assertStringNotContainsString('«TEL', $result->text);
+        $this->assertSame('Compró 600 unidades por 1.234,56 euros.', $result->restore($result->text));
+    }
+
+    public function test_surname_honorific_types_all_words_as_surname(): void
+    {
+        // "Sr./Sra." introduce surnames: with several words all are surnames
+        // ("Sr. Pérez López"), so none is mistaken for a given name (which
+        // except('person') would otherwise leave in cleartext).
+        $result = $this->anonymizer()->except('person')->anonymize('Comparece el Sr. Pérez López.');
+
+        $this->assertStringNotContainsString('Pérez', $result->text);
+        $this->assertStringNotContainsString('López', $result->text);
+        $this->assertSame(2, substr_count($result->text, '«AP_'));
+        $this->assertSame('Comparece el Sr. Pérez López.', $result->restore($result->text));
+    }
+
+    public function test_dni_with_thousand_dots(): void
+    {
+        $result = $this->anonymizer()->anonymize('aporta el DNI 12.345.678-Z en autos');
+
+        $this->assertStringContainsString('«DNI_1»', $result->text);
+        $this->assertStringNotContainsString('12.345.678', $result->text);
+        $this->assertSame('aporta el DNI 12.345.678-Z en autos', $result->restore($result->text));
+    }
+
     public function test_name_words_get_independent_tokens_and_restore_exactly(): void
     {
         $original = 'La reclamante María López presentó la demanda. María adjuntó el contrato firmado.';

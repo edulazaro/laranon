@@ -225,8 +225,8 @@ Prints every span the anonymizer would replace (type, value, offset, confidence)
 
 | Pack | Types |
 | --- | --- |
-| Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), IPv4/v6, URLs, BIC/SWIFT, known entities |
-| Spanish (`es`) | DNI, NIE, CIF, NSS, CCC, phones (+34/6xx/7xx/9xx), postal codes (context-gated), plates, court refs (NIG, "autos 123/2023", "expediente número 456/2023"), person names |
+| Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), international phones (+cc / 00cc, any grouping), IPv4/v6, URLs, BIC/SWIFT, known entities |
+| Spanish (`es`) | DNI, NIE, CIF, NSS, CCC, bare phones (6xx/7xx mobiles, 9xx landlines, with or without separators), postal codes (context-gated), plates, court refs (NIG, "autos 123/2023", "expediente número 456/2023"), person names |
 | English (`en`) | SSN, UK NINO, passports (context-gated), US/UK phones, ZIP codes, person names |
 
 Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gated on purpose: precision first.

@@ -7,6 +7,7 @@ use EduLazaro\Laranon\Recognizers\Universal\CreditCardRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\EmailRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\IbanRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\IpAddressRecognizer;
+use EduLazaro\Laranon\Recognizers\Universal\PhoneRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\UrlRecognizer;
 use EduLazaro\Laranon\Strategies\FakerStrategy;
 use EduLazaro\Laranon\Strategies\RedactStrategy;
@@ -37,6 +38,7 @@ return [
         IbanRecognizer::class,
         CreditCardRecognizer::class,
         IpAddressRecognizer::class,
+        PhoneRecognizer::class,
         UrlRecognizer::class,
         BicSwiftRecognizer::class,
     ],

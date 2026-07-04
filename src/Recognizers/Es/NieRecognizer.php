@@ -15,7 +15,8 @@ class NieRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])[XYZxyz]\s?-?\s?\d{7}\s?-?\s?[A-Za-z](?![\dA-Za-z])/' => 1.0,
+            // X/Y/Z, 7 digits (optionally dotted, "1.234.567"), control letter.
+            '/(?<![\dA-Za-z])[XYZxyz]\s?-?\s?(?:\d\.\d{3}\.\d{3}|\d{7})\s?-?\s?[A-Za-z](?![\dA-Za-z])/' => 1.0,
         ];
     }
 

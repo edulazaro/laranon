@@ -173,10 +173,11 @@ abstract class NameRecognizer implements Recognizer
      * del...) stay in cleartext: alone they identify nobody and they keep
      * the structure of the name readable.
      *
-     * With several words, the first is the given name and the rest surnames
-     * (D. Juan Pérez, Mr. James Miller). With a SINGLE word, position says
-     * nothing, so $loneWordType decides: 'surname' after a surname honorific
-     * (Sr. García, Mr. Smith), 'person' otherwise (Dña. Luz).
+     * After a given-name honorific or a bare mention, the first word is the
+     * given name and the rest surnames (D. Juan Pérez, Mr. James Miller). After
+     * a SURNAME honorific (Sr., Sra., Mr., Mrs.) EVERY word is a surname, one or
+     * many (Sr. García, Sr. Pérez López). With a single bare word $loneWordType
+     * decides: 'surname' after a surname honorific, 'person' otherwise (Dña. Luz).
      *
      * @return array<int, Span>
      */
@@ -195,7 +196,12 @@ abstract class NameRecognizer implements Recognizer
         }
 
         $spans = [];
-        $type = count($words) === 1 ? $loneWordType : 'person';
+        // A surname honorific (Sr., Sra., Mr., Mrs.) makes EVERY word a surname,
+        // even several ("Sr. Pérez López" = two surnames). Otherwise the first
+        // word is the given name (or, alone, whatever $loneWordType says).
+        $type = $loneWordType === 'surname'
+            ? 'surname'
+            : (count($words) === 1 ? $loneWordType : 'person');
 
         foreach ($words as [$word, $relative]) {
             $spans[] = new Span($offset + $relative, strlen($word), $type, $word, $confidence);
