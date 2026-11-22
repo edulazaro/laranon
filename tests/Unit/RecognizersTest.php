@@ -31,6 +31,13 @@ class RecognizersTest extends TestCase
         $this->assertSame([], (new DniRecognizer())->detect('Recibió 12 345 678 z.'));
     }
 
+    public function test_cif_with_digits_grouped_by_dots(): void
+    {
+        $spans = (new \EduLazaro\Laranon\Recognizers\Es\CifRecognizer())->detect('CIF B-12.345.674 y CIF B12.345.674.');
+
+        $this->assertSame(['B-12.345.674', 'B12.345.674'], array_map(fn ($span) => $span->value, $spans));
+    }
+
     public function test_email_recognizer(): void
     {
         $spans = (new EmailRecognizer())->detect('Escribe a maria.garcia@despacho.legal cuando puedas.');

@@ -51,7 +51,7 @@ final class Checksums
      */
     public static function cif(string $value): bool
     {
-        $value = strtoupper(Separators::strip($value));
+        $value = strtoupper(Separators::strip($value, '.'));
 
         if (! preg_match('/^([ABCDEFGHJKLMNPQRSUVW])(\d{7})([0-9A-J])$/', $value, $m)) {
             return false;

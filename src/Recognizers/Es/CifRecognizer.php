@@ -16,7 +16,9 @@ class CifRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])[ABCDEFGHJKLMNPQRSUVW]' . Separators::GAP . '\d{7}' . Separators::GAP . '[0-9A-Ja-j](?![\dA-Za-z])/' => 1.0,
+            // The 7 digits bare or grouped by dots with the control glued to
+            // them ("B-12.345.674").
+            '/(?<![\dA-Za-z])[ABCDEFGHJKLMNPQRSUVW]' . Separators::GAP . '(?:\d{7}' . Separators::GAP . '|\d{2}\.\d{3}\.\d{2})[0-9A-Ja-j](?![\dA-Za-z])/' => 1.0,
         ];
     }
 
