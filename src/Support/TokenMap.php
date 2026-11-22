@@ -64,6 +64,7 @@ final class TokenMap
         array $forms = [],
         array $nameTypes = [],
         array $literal = [],
+        protected ?string $language = null,
     ) {
         $this->nameTypes = array_fill_keys($nameTypes, true);
         $this->literal = array_fill_keys($literal, true);
@@ -585,7 +586,22 @@ final class TokenMap
             'forms' => $this->forms,
             'name_types' => array_keys($this->nameTypes),
             'literal' => array_keys($this->literal),
+            'language' => $this->language,
         ];
+    }
+
+    /**
+     * The language last told clearly from a text of this map (a conversation,
+     * a case), for the texts that come after it and are too short to tell.
+     */
+    public function language(): ?string
+    {
+        return $this->language;
+    }
+
+    public function rememberLanguage(string $language): void
+    {
+        $this->language = $language;
     }
 
     public static function fromArray(?array $payload): self
@@ -597,6 +613,7 @@ final class TokenMap
             $payload['forms'] ?? [],
             $payload['name_types'] ?? [],
             $payload['literal'] ?? [],
+            $payload['language'] ?? null,
         );
     }
 }

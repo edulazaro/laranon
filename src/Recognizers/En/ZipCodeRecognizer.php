@@ -2,13 +2,14 @@
 
 namespace EduLazaro\Laranon\Recognizers\En;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * US ZIP codes: ZIP+4 always (unambiguous format), plain 5-digit only when
  * introduced as a ZIP.
  */
-class ZipCodeRecognizer extends RegexRecognizer
+class ZipCodeRecognizer extends RegexRecognizer implements LanguageScoped
 {
     public function type(): string
     {

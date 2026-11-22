@@ -2,13 +2,14 @@
 
 namespace EduLazaro\Laranon\Recognizers\En;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * Context-gated: passport numbers have no universal format, so they are only
  * flagged when introduced as such ("passport no. X1234567").
  */
-class PassportRecognizer extends RegexRecognizer
+class PassportRecognizer extends RegexRecognizer implements LanguageScoped
 {
     public function type(): string
     {

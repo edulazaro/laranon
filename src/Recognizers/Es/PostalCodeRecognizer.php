@@ -2,13 +2,14 @@
 
 namespace EduLazaro\Laranon\Recognizers\Es;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * Context-gated: a bare 5-digit number is far too ambiguous, so a postal
  * code is only flagged when introduced as one (CP, C.P., código postal).
  */
-class PostalCodeRecognizer extends RegexRecognizer
+class PostalCodeRecognizer extends RegexRecognizer implements LanguageScoped
 {
     public function type(): string
     {

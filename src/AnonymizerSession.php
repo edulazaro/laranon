@@ -47,7 +47,19 @@ class AnonymizerSession
      */
     public function anonymize(string|array $input, string|array|null $keys = null): string|array
     {
-        return $this->transform($input, $keys, fn (string $s): string => $this->engine->anonymizeString($s, $this->map));
+        // The language is told once, from every string of the input together:
+        // a short message ("Sí, de acuerdo") is read in the conversation's.
+        $strings = [];
+
+        $this->transform($input, $keys, function (string $s) use (&$strings): string {
+            $strings[] = $s;
+
+            return $s;
+        });
+
+        $languages = $this->engine->languagesFor(implode("\n", $strings), $this->map);
+
+        return $this->transform($input, $keys, fn (string $s): string => $this->engine->anonymizeString($s, $this->map, $languages));
     }
 
     /**

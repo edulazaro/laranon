@@ -2,13 +2,14 @@
 
 namespace EduLazaro\Laranon\Recognizers\Es;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * Court case references: the 19-digit NIG and procedure numbers such as
  * "autos 123/2023". Both are context-gated to avoid eating plain fractions.
  */
-class NigRecognizer extends RegexRecognizer
+class NigRecognizer extends RegexRecognizer implements LanguageScoped
 {
     public function type(): string
     {

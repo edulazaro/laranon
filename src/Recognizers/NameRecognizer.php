@@ -2,6 +2,7 @@
 
 namespace EduLazaro\Laranon\Recognizers;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Contracts\Recognizer;
 use EduLazaro\Laranon\Support\Span;
 use Illuminate\Support\Str;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
  * first token is a known given name). Locale subclasses provide the patterns
  * and dictionaries.
  */
-abstract class NameRecognizer implements Recognizer
+abstract class NameRecognizer implements Recognizer, LanguageScoped
 {
     /**
      * Joins the parts of a hyphenated name (Pérez-Reverte): the ASCII hyphen,

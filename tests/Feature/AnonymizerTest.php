@@ -125,6 +125,50 @@ class AnonymizerTest extends TestCase
         $this->assertSame($original, $result->restore($result->text));
     }
 
+    public function test_a_short_spanish_line_is_read_in_spanish_whatever_the_app_locale(): void
+    {
+        $this->app->setLocale('en');
+
+        $this->assertSame('Llamar al «TEL_1».', $this->anonymizer()->anonymize('Llamar al 612345678.')->text);
+    }
+
+    public function test_a_document_with_a_passage_in_another_language_is_read_in_both(): void
+    {
+        $text = "El Sr. García presentó el contrato que firmó con la otra parte en Madrid el año pasado.\n\n"
+            . 'The agreement was signed by Mr. Smith on behalf of the company, as stated in the annex.';
+
+        $this->assertSame(['es', 'en'], $this->anonymizer()->languagesFor($text, new TokenMap()));
+        $this->assertSame(
+            "El Sr. «AP_1» presentó el contrato que firmó con la otra parte en Madrid el año pasado.\n\n"
+                . 'The agreement was signed by Mr. «AP_2» on behalf of the company, as stated in the annex.',
+            $this->anonymizer()->anonymize($text)->text,
+        );
+    }
+
+    public function test_the_language_can_be_set_instead_of_detected(): void
+    {
+        $text = 'The agreement was signed by Mr. Smith on behalf of the company, as stated in the annex.';
+
+        $this->assertSame($text, $this->anonymizer()->language('es')->anonymize($text)->text);
+    }
+
+    public function test_a_session_remembers_the_language_for_what_cannot_be_told(): void
+    {
+        $session = $this->anonymizer()->newSession();
+        $session->anonymize('Comparece el demandado en nombre propio y manifiesta que no está conforme con la demanda presentada.');
+
+        $this->assertSame('es', $session->map()->language());
+        $this->assertSame(['es'], $this->anonymizer()->languagesFor('612345678', $session->map()));
+        $this->assertSame(['es', 'en'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
+    }
+
+    public function test_a_text_in_a_language_with_no_pack_is_read_in_all(): void
+    {
+        $german = 'Der Beklagte hat die Forderung bestritten und beantragt, die Klage abzuweisen, da der Vertrag nicht wirksam zustande gekommen sei.';
+
+        $this->assertSame(['es', 'en'], $this->anonymizer()->languagesFor($german, new TokenMap()));
+    }
+
     public function test_the_french_pack_is_off_until_its_locale_is_added(): void
     {
         $text = 'DUPONT Jean signe. Le Tribunal judiciaire de Lyon.';

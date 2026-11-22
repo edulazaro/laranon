@@ -2,6 +2,7 @@
 
 namespace EduLazaro\Laranon\Recognizers\Es;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Separators;
 
@@ -9,7 +10,7 @@ use EduLazaro\Laranon\Support\Separators;
  * Modern Spanish plates: 4 digits + 3 consonants (no vowels, no Q/Ñ). Also
  * the provincial ones issued until 2000 ("M-1234-AB"), context-gated.
  */
-class PlateRecognizer extends RegexRecognizer
+class PlateRecognizer extends RegexRecognizer implements LanguageScoped
 {
     /**
      * Province codes of the plates issued until 2000.

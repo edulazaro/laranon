@@ -3,6 +3,7 @@
 namespace EduLazaro\Laranon;
 
 use EduLazaro\Laranon\Console\ScanCommand;
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Contracts\VaultStore;
 use EduLazaro\Laranon\Integrations\HttpMacro;
 use EduLazaro\Laranon\Strategies\FakerStrategy;
@@ -42,14 +43,17 @@ class LaranonServiceProvider extends ServiceProvider
             $config = $app['config']['laranon'] ?? [];
             $locks = $app['cache']->store()->getStore();
 
+            [$recognizers, $languageRecognizers] = $this->buildRecognizers($config);
+
             return new Anonymizer(
-                recognizers: $this->buildRecognizers($config),
+                recognizers: $recognizers,
                 strategies: $this->buildStrategies($config),
                 defaultStrategy: $config['strategy'] ?? 'token',
                 vault: $app->make(VaultStore::class),
                 ttl: $config['vault']['ttl'] ?? null,
                 locks: $locks instanceof LockProvider ? $locks : null,
                 lockWait: $config['vault']['lock_wait'] ?? 10,
+                languageRecognizers: $languageRecognizers,
             );
         });
 
@@ -75,9 +79,16 @@ class LaranonServiceProvider extends ServiceProvider
         HttpMacro::register();
     }
 
+    /**
+     * The recognizers that run on every text, and by language code the ones
+     * that depend on the text's language (see LanguageScoped).
+     *
+     * @return array{0: array<int, \EduLazaro\Laranon\Contracts\Recognizer>, 1: array<string, array<int, \EduLazaro\Laranon\Contracts\Recognizer>>}
+     */
     protected function buildRecognizers(array $config): array
     {
         $recognizers = [];
+        $languageRecognizers = [];
 
         foreach ($config['universal'] ?? [] as $class) {
             $recognizers[] = $this->app->make($class);
@@ -92,10 +103,16 @@ class LaranonServiceProvider extends ServiceProvider
 
             $pack = new $packClass($config['data_path'] ?? null);
 
-            $recognizers = array_merge($recognizers, $pack->recognizers());
+            foreach ($pack->recognizers() as $recognizer) {
+                if ($recognizer instanceof LanguageScoped) {
+                    $languageRecognizers[$pack->locale()][] = $recognizer;
+                } else {
+                    $recognizers[] = $recognizer;
+                }
+            }
         }
 
-        return $recognizers;
+        return [$recognizers, $languageRecognizers];
     }
 
     protected function buildStrategies(array $config): array

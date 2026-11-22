@@ -7,6 +7,7 @@ use EduLazaro\Laranon\Contracts\VaultStore;
 use EduLazaro\Laranon\Recognizers\Universal\KnownEntitiesRecognizer;
 use EduLazaro\Laranon\Streaming\StreamDeanonymizer;
 use EduLazaro\Laranon\Support\AnonymizedText;
+use EduLazaro\Laranon\Support\LanguageDetector;
 use EduLazaro\Laranon\Support\Span;
 use EduLazaro\Laranon\Support\SpanResolver;
 use EduLazaro\Laranon\Support\TokenMap;
@@ -35,6 +36,14 @@ class Anonymizer
     /** @var array<int, string>|null */
     protected ?array $except = null;
 
+    /** @var array<int, string>|null languages set with language(), instead of detecting them */
+    protected ?array $languages = null;
+
+    protected ?LanguageDetector $detector = null;
+
+    /** Among the languages with a pack only, for each paragraph. */
+    protected ?LanguageDetector $packDetector = null;
+
     /** @var array<int, \EduLazaro\Laranon\Contracts\Recognizer> */
     protected array $extraRecognizers = [];
 
@@ -53,8 +62,12 @@ class Anonymizer
      * $tokenOpen and $tokenClose are no longer used (the stream restorer does
      * not depend on token delimiters) and are kept so 1.x calls still work.
      *
+     * $recognizers run on every text; $languageRecognizers, by language
+     * code, only on texts in that language (see languagesFor()).
+     *
      * @param array<int, \EduLazaro\Laranon\Contracts\Recognizer> $recognizers
      * @param array<string, Strategy> $strategies
+     * @param array<string, array<int, \EduLazaro\Laranon\Contracts\Recognizer>> $languageRecognizers
      */
     public function __construct(
         protected array $recognizers,
@@ -66,6 +79,7 @@ class Anonymizer
         protected string $tokenClose = '»',
         protected ?LockProvider $locks = null,
         protected int $lockWait = 10,
+        protected array $languageRecognizers = [],
     ) {
     }
 
@@ -101,6 +115,18 @@ class Anonymizer
     {
         $clone = clone $this;
         $clone->only = (array) $types;
+
+        return $clone;
+    }
+
+    /**
+     * Read the text as written in these languages (es, en, fr, ca) instead of
+     * detecting it: their names and their numbers without a checksum.
+     */
+    public function language(array|string $languages): static
+    {
+        $clone = clone $this;
+        $clone->languages = (array) $languages;
 
         return $clone;
     }
@@ -275,12 +301,12 @@ class Anonymizer
      * a stateful AnonymizerSession runs on, so several strings of one prompt
      * share one in-memory map and stay consistent.
      */
-    public function anonymizeString(string $text, TokenMap $map): string
+    public function anonymizeString(string $text, TokenMap $map, ?array $languages = null): string
     {
         $this->prepareGrouping($map);
 
         $strategy = $this->resolveStrategy();
-        $spans = $this->scan($text, $map);
+        $spans = $this->scan($text, $map, $languages);
 
         // Assign tokens in reading order (so «PER_1» is the first name seen),
         // then splice right-to-left so earlier offsets stay valid.
@@ -327,16 +353,24 @@ class Anonymizer
      * established in earlier calls of this scope; omit it to sweep within
      * this text only.
      *
+     * The recognizers of $languages run, or of the text's languages.
+     *
+     * @param array<int, string>|null $languages
      * @return array<int, \EduLazaro\Laranon\Support\Span>
      */
-    public function scan(string $text, ?TokenMap $map = null): array
+    public function scan(string $text, ?TokenMap $map = null, ?array $languages = null): array
     {
         $this->assertOnlyKnownTypes();
 
         $map ??= $this->loadMap();
         $spans = [];
+        $recognizers = array_merge($this->recognizers, $this->extraRecognizers);
 
-        foreach (array_merge($this->recognizers, $this->extraRecognizers) as $recognizer) {
+        foreach ($languages ?? $this->languagesFor($text, $map) as $language) {
+            array_push($recognizers, ...($this->languageRecognizers[$language] ?? []));
+        }
+
+        foreach ($recognizers as $recognizer) {
             $spans = array_merge($spans, $recognizer->detect($text));
         }
 
@@ -349,6 +383,117 @@ class Anonymizer
         usort($spans, fn (Span $a, Span $b) => $a->start <=> $b->start);
 
         return $spans;
+    }
+
+    /**
+     * The languages a text is read in, for the recognizers that depend on it
+     * (names, phones with no country prefix...). The ones set with
+     * language(), if any. Otherwise every language found in its paragraphs,
+     * so a Spanish document with a passage pasted in English is read in
+     * both: a paragraph's language is the clear winner of its n-grams among
+     * the languages with a pack, or else the one with most of its
+     * grammatical words, the way a short line is told ("Llamar al ..." is
+     * Spanish or Catalan). With nothing to go by (digits alone), the
+     * language last told clearly in this map (a conversation, a case), if
+     * any. And all of them when none of that gives one, or the whole text is
+     * clearly in a language with no pack, so a name is never lost to a wrong
+     * guess.
+     *
+     * @return array<int, string>
+     */
+    public function languagesFor(string $text, TokenMap $map): array
+    {
+        $available = array_keys($this->languageRecognizers);
+
+        if ($available === []) {
+            return [];
+        }
+
+        if ($this->languages !== null) {
+            $chosen = array_values(array_intersect($this->languages, $available));
+
+            return $chosen !== [] ? $chosen : $available;
+        }
+
+        $clear = $this->clearLanguage(($this->detector ??= LanguageDetector::create())->scores($text));
+
+        if ($clear !== null && ! in_array($clear, $available, true)) {
+            return $available;
+        }
+
+        $found = [];
+
+        foreach (preg_split('/\R\h*\R/u', $text) as $paragraph) {
+            array_push($found, ...$this->paragraphLanguages($paragraph, $available));
+        }
+
+        $found = array_values(array_unique($found));
+
+        if ($found !== []) {
+            if ($clear !== null && $found === [$clear]) {
+                $map->rememberLanguage($clear);
+            }
+
+            return $found;
+        }
+
+        return in_array($map->language(), $available, true) ? [$map->language()] : $available;
+    }
+
+    /**
+     * The language whose score is clearly ahead of the rest, as a pack code
+     * ("pt-BR" and "pt-PT" are both "pt"), or null.
+     *
+     * @param array<string, float> $scores
+     */
+    protected function clearLanguage(array $scores): ?string
+    {
+        if ($scores === []) {
+            return null;
+        }
+
+        $best = reset($scores);
+        $tied = array_unique(array_map(
+            fn (string $code) => strtolower(explode('-', $code)[0]),
+            array_keys(array_filter($scores, fn (float $score) => $best - $score <= LanguageDetector::THRESHOLD)),
+        ));
+
+        return count($tied) === 1 ? reset($tied) : null;
+    }
+
+    /**
+     * The languages of one paragraph, among the $available ones: the clear
+     * winner of its n-grams, or the ones with most of its grammatical words,
+     * or the ones its n-grams tie for. None when it has no letters.
+     *
+     * @param array<int, string> $available
+     * @return array<int, string>
+     */
+    protected function paragraphLanguages(string $paragraph, array $available): array
+    {
+        $detector = $this->packDetector ??= LanguageDetector::create($available);
+        $scores = $detector->scores($paragraph);
+
+        if ($scores === []) {
+            return [];
+        }
+
+        $best = reset($scores);
+        $tied = array_keys(array_filter($scores, fn (float $score) => $best - $score <= LanguageDetector::THRESHOLD));
+
+        if (count($tied) === 1) {
+            return $tied;
+        }
+
+        $words = $detector->wordCounts($paragraph);
+
+        if ($words === []) {
+            return $tied;
+        }
+
+        $most = reset($words);
+
+        return array_keys(array_filter($words, fn (int $count) => $count === $most));
     }
 
     /**
@@ -500,7 +645,7 @@ class Anonymizer
 
         $known = [];
 
-        foreach (array_merge($this->recognizers, $this->extraRecognizers) as $recognizer) {
+        foreach (array_merge($this->recognizers, $this->extraRecognizers, ...array_values($this->languageRecognizers)) as $recognizer) {
             foreach (method_exists($recognizer, 'types') ? $recognizer->types() : [$recognizer->type()] as $type) {
                 $known[$type] = true;
             }

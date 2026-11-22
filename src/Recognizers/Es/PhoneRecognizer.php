@@ -2,10 +2,11 @@
 
 namespace EduLazaro\Laranon\Recognizers\Es;
 
+use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Separators;
 
-class PhoneRecognizer extends RegexRecognizer
+class PhoneRecognizer extends RegexRecognizer implements LanguageScoped
 {
     /**
      * Not followed by a currency or a percent: "600.000.000 euros" is an amount.

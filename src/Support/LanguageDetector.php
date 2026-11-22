@@ -2,6 +2,8 @@
 
 namespace EduLazaro\Laranon\Support;
 
+use Illuminate\Support\Str;
+
 /**
  * Detects the language of a text by its n-grams (Cavnar and Trenkle, 1994):
  * the sequences of one to three letters of the text, ranked by frequency,
@@ -28,6 +30,9 @@ final class LanguageDetector
     /** @var array<string, array<string, int>> language code => n-gram => rank */
     private array $profiles = [];
 
+    /** @var array<string, array<string, true>> language code => its most frequent grammatical words */
+    private array $words = [];
+
     /**
      * @param array<int, string> $languages the codes to choose from (es, en,
      *                                      pt-BR, zh-Hans...), or every one
@@ -41,6 +46,10 @@ final class LanguageDetector
 
             if ($languages === [] || in_array($code, $languages, true)) {
                 $this->profiles[$code] = array_flip(require $file);
+
+                if (is_file($words = $directory . '/words/' . $code . '.php')) {
+                    $this->words[$code] = array_fill_keys(require $words, true);
+                }
             }
         }
     }
@@ -70,6 +79,32 @@ final class LanguageDetector
         [$best, $second] = array_pad(array_values($scores), 2, null);
 
         return $second !== null && $best - $second <= self::THRESHOLD ? null : array_key_first($scores);
+    }
+
+    /**
+     * How many of each language's most frequent grammatical words the text
+     * has (data/languages/words), most first, for a text too short for its
+     * n-grams: "Llamar al 612345678" has the "al" of Spanish and Catalan.
+     * Languages with none, or without a list, are left out.
+     *
+     * @return array<string, int>
+     */
+    public function wordCounts(string $text): array
+    {
+        $tokens = preg_split('/[^\pL]+/u', Str::ascii(mb_strtolower($text)), -1, PREG_SPLIT_NO_EMPTY);
+        $counts = [];
+
+        foreach ($this->words as $code => $words) {
+            $count = count(array_filter($tokens, fn (string $token) => isset($words[$token])));
+
+            if ($count > 0) {
+                $counts[$code] = $count;
+            }
+        }
+
+        arsort($counts, SORT_NUMERIC);
+
+        return $counts;
     }
 
     /**
