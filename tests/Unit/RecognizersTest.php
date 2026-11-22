@@ -21,6 +21,16 @@ class RecognizersTest extends TestCase
         $this->assertSame('dni', $spans[0]->type);
     }
 
+    public function test_dni_with_digits_grouped_by_blanks(): void
+    {
+        $spans = (new DniRecognizer())->detect("NIF 12 345 678 Z y NIF 12\u{00A0}345\u{00A0}678-Z.");
+
+        $this->assertSame(['12 345 678 Z', "12\u{00A0}345\u{00A0}678-Z"], array_map(fn ($span) => $span->value, $spans));
+
+        // Lowercase after grouped digits reads as a word, not a control letter.
+        $this->assertSame([], (new DniRecognizer())->detect('Recibió 12 345 678 z.'));
+    }
+
     public function test_email_recognizer(): void
     {
         $spans = (new EmailRecognizer())->detect('Escribe a maria.garcia@despacho.legal cuando puedas.');

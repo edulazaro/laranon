@@ -19,6 +19,9 @@ class DniRecognizer extends RegexRecognizer
             // 8 digits (optionally dotted as thousands, "12.345.678"), then the
             // control letter. The checksum validates after stripping separators.
             '/(?<![\dA-Za-z])(?:\d{2}\.\d{3}\.\d{3}|\d{8})' . Separators::GAP . '[A-Za-z](?![\dA-Za-z])/' => 1.0,
+            // Digits grouped by blanks ("12 345 678 Z"). Uppercase letter only:
+            // "pagó 12 345 678 a Juan" is an amount followed by a word.
+            '/(?<![\dA-Za-z])\d{2}' . Separators::BLANK . '\d{3}' . Separators::BLANK . '\d{3}' . Separators::GAP . '[A-Z](?![\dA-Za-z])/' => 1.0,
         ];
     }
 

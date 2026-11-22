@@ -20,6 +20,12 @@ final class Separators
     public const SPACE = '(?:\s|\xC2\xA0|\xE2\x80\xAF)';
 
     /**
+     * A blank inside a group of digits ("12 345 678"): space, tab or a
+     * no-break space, never a line break.
+     */
+    public const BLANK = '(?:[ \t]|\xC2\xA0|\xE2\x80\xAF)';
+
+    /**
      * The ASCII hyphen plus the typographic dashes (U+2010 to U+2015) and the
      * minus sign (U+2212).
      */
