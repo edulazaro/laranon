@@ -253,8 +253,32 @@ class RecognizersTest extends TestCase
         // A name can start on the line that ends the previous one.
         $this->assertSame(['Juan', 'Pérez', 'Ana', 'López'], $values("Juan Pérez\nAna López"));
 
-        // A name a PDF wraps keeps only its first line.
+        // Short lines are not wrapped prose: the name keeps only its first line.
         $this->assertSame(['Juan', 'García'], $values("Juan García\nLópez Ruiz comparece."));
+    }
+
+    public function test_a_surname_wrapped_inside_prose_stays_in_the_name(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $prose = "En la ciudad de Barcelona, ante el tribunal, comparece como demandante D. Albert Bosque\n"
+            . "Alberich, que firma, asistido por la procuradora de los tribunales doña Sandra Osorio\n"
+            . "Alonso, en nombre de la entidad demandada, y por la letrada doña Marta Cànaves\n"
+            . "Bertos. Todos ellos manifiestan su conformidad con lo acordado en la vista celebrada.";
+
+        $this->assertSame(
+            ['Albert', 'Bosque', 'Alberich', 'Sandra', 'Osorio', 'Alonso', 'Marta', 'Cànaves', 'Bertos'],
+            $values($prose),
+        );
+
+        // A label after the wrapped word, or a short line, ends the name there.
+        $label = "En la ciudad de Barcelona, ante el tribunal, comparece como demandante D. Albert Bosque\n"
+            . "Alberich: que firma, asistido por la procuradora de los tribunales doña Sandra Osorio\n"
+            . "Madrid, en nombre de la entidad demandada, y por la letrada doña Marta Cànaves Bertos.\n"
+            . "Firma Ana Ruiz\nLópez";
+
+        $this->assertSame(['Albert', 'Bosque', 'Sandra', 'Osorio', 'Madrid', 'Marta', 'Cànaves', 'Bertos', 'Ana', 'Ruiz'], $values($label));
     }
 
     public function test_function_words_are_never_name_words(): void

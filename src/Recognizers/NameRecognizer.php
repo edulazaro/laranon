@@ -76,6 +76,11 @@ abstract class NameRecognizer implements Recognizer
     /** @var array<string, true>|null */
     protected ?array $commonNames = null;
 
+    /** The text detect() is reading, and the width of its full lines. */
+    protected string $text = '';
+
+    protected ?int $lineWidth = null;
+
     /** @var array<string, string>|null */
     protected ?array $genders = null;
 
@@ -185,6 +190,9 @@ abstract class NameRecognizer implements Recognizer
 
     public function detect(string $text): array
     {
+        $this->text = $text;
+        $this->lineWidth = $this->joinsWrappedLines() ? $this->typicalLineWidth($text) : null;
+
         $spans = [];
 
         $honorifics = [
@@ -203,7 +211,7 @@ abstract class NameRecognizer implements Recognizer
 
             foreach ($matches[1] as [$value, $offset]) {
                 if ($value !== '') {
-                    $value = substr($value, 0, $this->nameLength($value));
+                    $value = substr($value, 0, $this->nameLength($value, $offset));
 
                     array_push($spans, ...$this->splitNameWords($value, $offset, 0.95, $honorific['loneWordType']));
                 }
@@ -256,7 +264,7 @@ abstract class NameRecognizer implements Recognizer
      */
     protected function resolveInitialsCandidate(string $value, int $offset): array
     {
-        $value = substr($value, 0, $this->nameLength($value));
+        $value = substr($value, 0, $this->nameLength($value, $offset));
 
         preg_match_all('/\S+/u', $value, $matches);
         $words = $matches[0];
@@ -292,7 +300,7 @@ abstract class NameRecognizer implements Recognizer
 
         $rest = substr($value, $tokens[$start][1]);
         $restOffset = $offset + $tokens[$start][1];
-        $keep = $this->nameLength($rest);
+        $keep = $this->nameLength($rest, $restOffset);
 
         if ($keep < strlen($rest)) {
             preg_match('/\S/u', $rest, $next, PREG_OFFSET_CAPTURE, $keep);
@@ -348,7 +356,7 @@ abstract class NameRecognizer implements Recognizer
         // its own: a name can still start there ("Juan Pérez⏎Ana López").
         $rest = substr($value, $tokens[$start][1]);
         $restOffset = $offset + $tokens[$start][1];
-        $keep = $this->nameLength($rest);
+        $keep = $this->nameLength($rest, $restOffset);
 
         if ($keep < strlen($rest)) {
             preg_match('/\S/u', $rest, $next, PREG_OFFSET_CAPTURE, $keep);
@@ -377,17 +385,20 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
-     * How much of a candidate is still one name, in bytes: up to its first
-     * line break or function word. What follows a name on the next line is a
-     * heading, a role or a place far more often than the rest of the name
-     * ("Martín⏎En Madrid", "Simon⏎Abogado"), and the surname lists cannot
-     * tell them apart: the US census lists Abogado, Madrid and Ley as
-     * surnames. A name a PDF wraps keeps only its first line. A function word
-     * ("Juan García Sobre la base") is never part of a name.
+     * How much of a candidate, found at $offset of the text, is still one
+     * name, in bytes: up to its first line break or function word. What
+     * follows a name on the next line is a heading, a role or a place far
+     * more often than the rest of the name ("Martín⏎En Madrid", "Simon⏎
+     * Abogado"), and the surname lists cannot tell them apart: the US census
+     * lists Abogado, Madrid and Ley as surnames. The exception is a line
+     * wrapped inside prose (see wrappedLength()). A function word ("Juan
+     * García Sobre la base") is never part of a name.
      */
-    protected function nameLength(string $value): int
+    protected function nameLength(string $value, int $offset): int
     {
-        $length = preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1 ? $match[0][1] : strlen($value);
+        $length = preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1
+            ? $this->wrappedLength($value, $match[0][1], $offset)
+            : strlen($value);
 
         preg_match_all('/\S+/u', substr($value, 0, $length), $matches, PREG_OFFSET_CAPTURE);
         $functionWords = array_fill_keys($this->functionWords(), true);
@@ -399,6 +410,81 @@ abstract class NameRecognizer implements Recognizer
         }
 
         return $length;
+    }
+
+    /**
+     * Where a name cut by the line break at $break really ends. A PDF wraps
+     * prose at a fixed width, so a full line that ends inside a name ("D.
+     * Albert Bosque⏎Alberich, que firma") goes on with the surnames that open
+     * the next line. Only when the line is as long as the text's full lines
+     * (a heading or a signature is shorter), the break is a single one, every
+     * word taken is a known surname of this locale, and no ":" or "/" follows
+     * them (a label such as "Abogado/a:"). Otherwise the name ends at the
+     * break.
+     */
+    protected function wrappedLength(string $value, int $break, int $offset): int
+    {
+        if ($this->lineWidth === null
+            || preg_match('/\G\h*\R\h*/u', $value, $gap, 0, $break) !== 1
+            || preg_match('/\G\R/u', $value, $blank, 0, $break + strlen($gap[0])) === 1) {
+            return $break;
+        }
+
+        $before = substr($this->text, 0, $offset + $break);
+        $line = substr($before, max((int) strrpos($before, "\n"), (int) strrpos($before, "\r")));
+
+        if (mb_strlen(trim($line)) < 0.8 * $this->lineWidth) {
+            return $break;
+        }
+
+        $start = $break + strlen($gap[0]);
+        preg_match('/\G[^\r\n]*/u', $value, $next, 0, $start);
+        preg_match_all('/\S+/u', $next[0], $words, PREG_OFFSET_CAPTURE);
+
+        $end = $break;
+
+        foreach ($words[0] as [$word, $relative]) {
+            if (! $this->isSurname($word)) {
+                break;
+            }
+
+            $end = $start + $relative + strlen($word);
+        }
+
+        $after = substr($this->text, $offset + $end, 1);
+
+        return $end > $break && $after !== ':' && $after !== '/' ? $end : $break;
+    }
+
+    /**
+     * The width, in characters, of the text's full lines: the median length
+     * of its lines of 40 characters or more, or null when fewer than three
+     * reach that, as in a short message with no wrapped prose.
+     */
+    protected function typicalLineWidth(string $text): ?int
+    {
+        $lengths = array_values(array_filter(
+            array_map(fn (string $line) => mb_strlen(trim($line)), preg_split('/\R/u', $text)),
+            fn (int $length) => $length >= 40,
+        ));
+
+        if (count($lengths) < 3) {
+            return null;
+        }
+
+        sort($lengths);
+
+        return $lengths[intdiv(count($lengths), 2)];
+    }
+
+    /**
+     * Whether a name may run on to the next line when a PDF wraps it (see
+     * wrappedLength()). Off unless the locale's surname list is curated
+     * enough to tell a surname from a word: the US census list is not.
+     */
+    protected function joinsWrappedLines(): bool
+    {
+        return false;
     }
 
     /**
