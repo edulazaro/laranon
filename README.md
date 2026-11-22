@@ -254,7 +254,7 @@ Prints every span the anonymizer would replace (type, value, offset, confidence)
 
 | Pack | Types |
 | --- | --- |
-| Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), international phones (+cc / 00cc, any grouping), IPv4/v6, URLs, BIC/SWIFT, known entities |
+| Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), international phones (+cc / 00cc, any grouping), IPv4/v6, URLs, BIC/SWIFT (after the word BIC or SWIFT), known entities |
 | Spanish (`es`) | DNI, NIE, NIF K/L/M (typed `dni`), CIF, NIF-IVA (`ES` + DNI, NIE or CIF), NSS, CCC, bare phones (6xx/7xx mobiles, 9xx landlines, with or without separators), postal codes (context-gated), plates, court refs (NIG, "autos 123/2023", "expediente número 456/2023"), person names |
 | English (`en`) | SSN, UK NINO, passports (context-gated), US/UK phones, ZIP codes, person names |
 

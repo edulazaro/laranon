@@ -75,6 +75,15 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values('Con matrícula M-1234 AB.'));
     }
 
+    public function test_a_bic_needs_a_word_that_introduces_it(): void
+    {
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, (new \EduLazaro\Laranon\Recognizers\Universal\BicSwiftRecognizer())->detect($text));
+
+        $this->assertSame([], $values('SE REQUIERE a la parte. EXPEDIENTE ATRASADO.'));
+        $this->assertSame(['CAIXESBBXXX'], $values('IBAN ES91 2100 0418 4502 0005 1332, BIC: CAIXESBBXXX.'));
+        $this->assertSame(['BSCHESMM'], $values('Código SWIFT/BIC de la entidad: BSCHESMM.'));
+    }
+
     public function test_the_year_of_a_reference_is_not_a_plate(): void
     {
         $values = fn (string $text) => array_map(fn ($span) => $span->value, (new \EduLazaro\Laranon\Recognizers\Es\PlateRecognizer())->detect($text));

@@ -23,8 +23,12 @@ class BicSwiftRecognizer extends RegexRecognizer
 
     protected function patterns(): array
     {
+        // A BIC has no checksum, and any 8 or 11 capitals with a country code
+        // in the middle look like one ("SE REQUIERE": REQU, IE, RE). Like a
+        // provincial plate, it is only taken after a word that introduces it,
+        // on the same line.
         return [
-            '/\b[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/' => 0.75,
+            '/(?i:\b(?:bic|swift)\b)[^\n]{0,30}?(?<![A-Za-z0-9])([A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)(?![A-Za-z0-9])/' => 0.75,
         ];
     }
 
