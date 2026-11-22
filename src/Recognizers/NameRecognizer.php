@@ -96,6 +96,9 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      */
     protected static array $sharedLists = [];
 
+    /** @var array<string, array<int, array<string, mixed>>> file => the lists of the other languages */
+    protected array $foreignLists = [];
+
     public function __construct(protected ?string $dataPath = null)
     {
     }
@@ -1002,6 +1005,10 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      */
     protected function foreignLists(string $file): array
     {
+        if (isset($this->foreignLists[$file])) {
+            return $this->foreignLists[$file];
+        }
+
         $data = $this->dataPath ?? dirname(__DIR__, 2) . '/data';
         $own = $data . '/' . dirname($this->firstNamesFile());
         $lists = [];
@@ -1012,6 +1019,6 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
             }
         }
 
-        return $lists;
+        return $this->foreignLists[$file] = $lists;
     }
 }

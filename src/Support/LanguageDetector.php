@@ -33,6 +33,12 @@ final class LanguageDetector
     /** @var array<string, array<string, true>> language code => its most frequent grammatical words */
     private array $words = [];
 
+    /** The last text ranked, and its n-grams: scores() usually follows hasEnoughText() on the same text. */
+    private ?string $rankedText = null;
+
+    /** @var array<int, string> */
+    private array $ranked = [];
+
     /**
      * @param array<int, string> $languages the codes to choose from (es, en,
      *                                      pt-BR, zh-Hans...), or every one;
@@ -106,17 +112,21 @@ final class LanguageDetector
      */
     public function wordCounts(string $text): array
     {
-        $tokens = array_map(
-            fn (string $token) => Str::ascii($token),
-            array_filter(
-                preg_split('/[^\pL]+/u', $text, -1, PREG_SPLIT_NO_EMPTY),
-                fn (string $token) => mb_strtolower($token) === $token,
-            ),
-        );
+        $tokens = [];
+
+        foreach (array_count_values(preg_split('/[^\pL]+/u', $text, -1, PREG_SPLIT_NO_EMPTY)) as $token => $times) {
+            $token = (string) $token;
+
+            if (mb_strtolower($token) === $token) {
+                $folded = Str::ascii($token);
+                $tokens[$folded] = ($tokens[$folded] ?? 0) + $times;
+            }
+        }
+
         $counts = [];
 
         foreach ($this->words as $code => $words) {
-            $count = count(array_filter($tokens, fn (string $token) => isset($words[$token])));
+            $count = array_sum(array_intersect_key($tokens, $words));
 
             if ($count > 0) {
                 $counts[$code] = $count;
@@ -167,22 +177,37 @@ final class LanguageDetector
      */
     private function ngrams(string $text): array
     {
+        if ($text === $this->rankedText) {
+            return $this->ranked;
+        }
+
         $counts = [];
 
-        foreach (preg_split('/[^\pL]+(?<![\x27\x60\x{2019}])/u', $text, -1, PREG_SPLIT_NO_EMPTY) as $word) {
-            $word = "_{$word}_";
-            $length = mb_strlen($word);
+        // Each distinct word once, times its count: the same counts, in the
+        // same order, as word by word.
+        foreach (array_count_values(preg_split('/[^\pL]+(?<![\x27\x60\x{2019}])/u', $text, -1, PREG_SPLIT_NO_EMPTY)) as $word => $times) {
+            $letters = mb_str_split('_' . $word . '_');
+            $length = count($letters);
 
-            for ($size = 1; $size <= 3; $size++) {
-                for ($start = 0; $start + $size - 1 < $length; $start++) {
-                    $ngram = mb_substr($word, $start, $size);
-                    $counts[$size][$ngram] = ($counts[$size][$ngram] ?? 0) + 1;
-                }
+            for ($start = 0; $start < $length; $start++) {
+                $counts[1][$letters[$start]] = ($counts[1][$letters[$start]] ?? 0) + $times;
+            }
+
+            for ($start = 0; $start + 1 < $length; $start++) {
+                $ngram = $letters[$start] . $letters[$start + 1];
+                $counts[2][$ngram] = ($counts[2][$ngram] ?? 0) + $times;
+            }
+
+            for ($start = 0; $start + 2 < $length; $start++) {
+                $ngram = $letters[$start] . $letters[$start + 1] . $letters[$start + 2];
+                $counts[3][$ngram] = ($counts[3][$ngram] ?? 0) + $times;
             }
         }
 
+        $this->rankedText = $text;
+
         if ($counts === []) {
-            return [];
+            return $this->ranked = [];
         }
 
         foreach ($counts as $size => $ngrams) {
@@ -198,6 +223,6 @@ final class LanguageDetector
 
         arsort($ranked, SORT_NUMERIC);
 
-        return array_slice(array_keys($ranked), 0, self::MAX_NGRAMS);
+        return $this->ranked = array_slice(array_keys($ranked), 0, self::MAX_NGRAMS);
     }
 }
