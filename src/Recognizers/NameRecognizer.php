@@ -455,10 +455,11 @@ abstract class NameRecognizer implements Recognizer
      * prose at a fixed width, so a full line that ends inside a name ("D.
      * Albert Bosque⏎Alberich, que firma") goes on with the surnames that open
      * the next line. Only when the line is as long as the text's full lines
-     * (a heading or a signature is shorter), the break is a single one, every
-     * word taken is a known surname of this locale, and no ":" or "/" follows
-     * them (a label such as "Abogado/a:"). Otherwise the name ends at the
-     * break.
+     * (a heading or a signature is shorter), or, for the first line of the
+     * text, which an extract can start in the middle of, the line after it
+     * is; the break is a single one, every word taken is a known surname of
+     * this locale, and no ":" or "/" follows them (a label such as
+     * "Abogado/a:"). Otherwise the name ends at the break.
      */
     protected function wrappedLength(string $value, int $break, int $offset): int
     {
@@ -470,12 +471,16 @@ abstract class NameRecognizer implements Recognizer
 
         $before = substr($this->text, 0, $offset + $break);
         $line = substr($before, max((int) strrpos($before, "\n"), (int) strrpos($before, "\r")));
+        $start = $break + strlen($gap[0]);
+        preg_match('/\G[^\r\n]*/u', $this->text, $following, 0, $offset + $start);
 
-        if (mb_strlen(trim($line)) < 0.8 * $this->lineWidth) {
+        $first = strpbrk($before, "\r\n") === false;
+        $full = fn (string $line) => mb_strlen(trim($line)) >= 0.8 * $this->lineWidth;
+
+        if (! $full($line) && ! ($first && $full($following[0]))) {
             return $break;
         }
 
-        $start = $break + strlen($gap[0]);
         preg_match('/\G[^\r\n]*/u', $value, $next, 0, $start);
         preg_match_all('/\S+/u', $next[0], $words, PREG_OFFSET_CAPTURE);
 
@@ -496,8 +501,8 @@ abstract class NameRecognizer implements Recognizer
 
     /**
      * The width, in characters, of the text's full lines: the median length
-     * of its lines of 40 characters or more, or null when fewer than three
-     * reach that, as in a short message with no wrapped prose.
+     * of its lines of 40 characters or more, or null when none reaches that,
+     * as in a short message with no wrapped prose.
      */
     protected function typicalLineWidth(string $text): ?int
     {
@@ -506,7 +511,7 @@ abstract class NameRecognizer implements Recognizer
             fn (int $length) => $length >= 40,
         ));
 
-        if (count($lengths) < 3) {
+        if ($lengths === []) {
             return null;
         }
 

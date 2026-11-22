@@ -379,6 +379,18 @@ class RecognizersTest extends TestCase
             $values($prose),
         );
 
+        // An extract that starts in the middle of a line: the next line shows the width.
+        $this->assertSame(
+            ['Albert', 'Bosque', 'Alberich'],
+            $values("la dirección letrada de D. Albert Bosque\nAlberich, de Unive Abogados, S.L.P., contra la sentencia 1306/2019, de 2 de julio, dictada por la sección"),
+        );
+
+        // A short line in a document is not an extract, even before a long one.
+        $this->assertSame(
+            ['Juan', 'García'],
+            $values("Resolución de 3 de mayo.\nFirma: Juan García\nMadrid, a 3 de mayo de 2025, en presencia del notario que suscribe y da fe."),
+        );
+
         // A label after the wrapped word, or a short line, ends the name there.
         $label = "En la ciudad de Barcelona, ante el tribunal, comparece como demandante D. Albert Bosque\n"
             . "Alberich: que firma, asistido por la procuradora de los tribunales doña Sandra Osorio\n"
