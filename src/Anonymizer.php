@@ -177,11 +177,15 @@ class Anonymizer
     /**
      * Like withEntities(), but the replacement is pinned to a stable id you
      * already own (a client's database id) instead of the ad-hoc
-     * first-seen counter. The same id always yields the same placeholder,
-     * in every scope and every call, forever, so the token can live in your
-     * own database next to the record instead of being assigned on first
-     * mention. Detection still requires the value to be found in the text,
-     * exactly like withEntities(), and 'variants' works the same.
+     * first-seen counter. The same id yields the same placeholder in every
+     * scope and every call, so the token can live in your own database next
+     * to the record instead of being assigned on first mention. If that
+     * placeholder already belongs to another value in the map (the counter
+     * gave «ENT_1» to another value in an earlier call of the same scope, or
+     * the id comes back for a renamed record), the value gets a regular one
+     * instead: restoring the right text wins over keeping the pin. Detection
+     * still requires the value to be found in the text, exactly like
+     * withEntities(), and 'variants' works the same.
      *
      * @param array<int, array{value: string, id: int, type?: string, variants?: bool}> $entities
      */
