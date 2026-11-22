@@ -106,6 +106,17 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_iban_groups_split_by_dashes_and_ibans_in_a_row(): void
+    {
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, (new IbanRecognizer())->detect($text));
+
+        $this->assertSame(['ES91-2100-0418-4502-0005-1332'], $values('IBAN ES91-2100-0418-4502-0005-1332.'));
+        $this->assertSame(
+            ['ES91 2100 0418 4502 0005 1332', 'ES76 2077 0024 0031 0257 5766'],
+            $values('Cuentas ES91 2100 0418 4502 0005 1332 ES76 2077 0024 0031 0257 5766 fin.'),
+        );
+    }
+
     public function test_lowercase_iban_is_detected(): void
     {
         $spans = (new IbanRecognizer())->detect('Cuenta es91 2100 0418 4502 0005 1332 de la titular.');

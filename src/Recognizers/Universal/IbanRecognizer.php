@@ -16,30 +16,31 @@ class IbanRecognizer extends RegexRecognizer
 
     /**
      * The pattern is greedy, so an uppercase word or a number right after the
-     * IBAN ("1332 DEL TITULAR") is absorbed as one more group and breaks the
-     * checksum, which would leave the whole IBAN in cleartext. When a match
-     * fails, its trailing groups are dropped one by one until a prefix passes
-     * mod-97.
+     * IBAN ("1332 DEL TITULAR"), or the next IBAN, is absorbed as more groups
+     * and breaks the checksum. When a match fails, its trailing groups are
+     * dropped one by one until a prefix passes mod-97, and the search goes on
+     * right after that prefix, so an IBAN that follows is still found.
      */
     public function detect(string $text): array
     {
         $spans = [];
 
         foreach ($this->patterns() as $pattern => $confidence) {
-            if (! preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
-                continue;
-            }
+            $position = 0;
 
-            foreach ($matches[0] as [$value, $offset]) {
-                while (! $this->validate($value)) {
-                    if (! preg_match('/^(.*\S)\s+\S+$/su', $value, $m)) {
-                        continue 2;
-                    }
+            while (preg_match($pattern, $text, $match, PREG_OFFSET_CAPTURE, $position) === 1) {
+                [$value, $offset] = $match[0];
 
-                    $value = $m[1];
+                while (! $this->validate($value) && preg_match_all('/' . Separators::ONE . '/', $value, $separators, PREG_OFFSET_CAPTURE)) {
+                    $value = substr($value, 0, end($separators[0])[1]);
                 }
 
-                $spans[] = new Span($offset, strlen($value), $this->type(), $value, $confidence);
+                if ($this->validate($value)) {
+                    $spans[] = new Span($offset, strlen($value), $this->type(), $value, $confidence);
+                    $position = $offset + strlen($value);
+                } else {
+                    $position = $offset + 1;
+                }
             }
         }
 
@@ -49,9 +50,10 @@ class IbanRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         // Case-insensitive: "es91 2100…" is still an IBAN, and mod-97 keeps
-        // lowercase codes that only look like one out.
+        // lowercase codes that only look like one out. Groups are split by a
+        // space or a dash, as with any other identifier.
         return [
-            '/\b[A-Z]{2}\d{2}(?:' . Separators::SPACE . '?[A-Z0-9]{2,4}){3,8}\b/i' => 1.0,
+            '/\b[A-Z]{2}\d{2}(?:' . Separators::ONE . '?[A-Z0-9]{2,4}){3,8}\b/i' => 1.0,
         ];
     }
 
