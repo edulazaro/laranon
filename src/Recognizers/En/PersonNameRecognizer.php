@@ -6,6 +6,16 @@ use EduLazaro\Laranon\Recognizers\NameRecognizer;
 
 class PersonNameRecognizer extends NameRecognizer
 {
+    /**
+     * The particles of English-language names (van Gogh, da Vinci, bin
+     * Salman), without the Spanish ones (de, del, de la, la, lo): the Spanish
+     * recognizer runs on the same text and takes those names, and here they
+     * made headings like "Dirección General de Seguridad Jurídica" a name,
+     * since the US records list General and Valor as given names.
+     */
+    protected const EN_PARTICLES = 'della|dello|delle|degli|dei|des|du|das|da|dos|do|di|le'
+        . '|van(?:\s+de[rn]?)?|von(?:\s+der)?|der|den|ten|ter|bint|bin|ibn|ben';
+
     protected function honorificPattern(): ?string
     {
         // Sir/Lady conventionally precede a given name (Sir Ian, Lady Diana).
@@ -16,7 +26,7 @@ class PersonNameRecognizer extends NameRecognizer
     {
         // Mr/Mrs/Ms/Dr/Prof conventionally precede a surname (Mr. Smith), also
         // one that opens with a particle (Mr. van Gogh).
-        return '/\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+((?:(?:' . self::PARTICLES . ')\s+)?' . $this->name(0) . ')/u';
+        return '/\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+((?:(?:' . self::EN_PARTICLES . ')\s+)?' . $this->name(0) . ')/u';
     }
 
     protected function namePattern(): string
@@ -41,7 +51,7 @@ class PersonNameRecognizer extends NameRecognizer
     {
         $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
-        return self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){' . $more . ',3}';
+        return self::NAME_WORD . '(?:\s+(?:' . self::EN_PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){' . $more . ',3}';
     }
 
     protected function firstNamesFile(): string

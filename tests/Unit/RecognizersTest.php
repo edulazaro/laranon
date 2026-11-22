@@ -314,6 +314,17 @@ class RecognizersTest extends TestCase
         $this->assertSame(['PEDRO', 'RUIZ'], $values($es, 'ABSUELVO A PEDRO RUIZ TODOS LOS CARGOS.'));
     }
 
+    public function test_the_english_recognizer_leaves_spanish_particles_to_the_spanish_one(): void
+    {
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($en->detect($text)));
+
+        $this->assertSame([], $values('La Dirección General de Seguridad Jurídica.'));
+        $this->assertSame([], $values('El Incremento de Valor de los Terrenos de Naturaleza Urbana.'));
+        $this->assertSame([], $values('Régimen General de las Instituciones de Crédito.'));
+        $this->assertSame(['Vincent', 'Gogh', 'Leonardo', 'Vinci'], $values('Vincent van Gogh met Leonardo da Vinci.'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();
