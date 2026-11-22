@@ -105,7 +105,7 @@ Person names are tokenized per WORD, never per person. "John Smith" becomes `«P
 - A later bare "John" (same text or a later call in the same scope) gets `«PER_M_1»` again. The token belongs to the word, not to a person, so it is correct by construction.
 - "John Baker" becomes `«PER_M_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
 - "Mr. Baker" becomes "Mr. `«AP_2»`", sharing the token of the "Baker" in "John Baker". Honorifics themselves stay in cleartext.
-- A given name says its gender: `«PER_F_1»` for a woman's name, `«PER_M_1»` for a man's, `«PER_1»` when the name is ambiguous (Reyes, Cruz) or unknown. The model keeps Spanish agreement ("la demandante") without seeing the name, so there is no need to leave given names in cleartext with `except('person')`. The gender comes from the census (INE) and belongs to the word, like its token; honorifics stay in cleartext anyway. Set `gender` to `false` in the config to keep every given name neutral.
+- A given name says its gender: `«PER_F_1»` for a woman's name, `«PER_M_1»` for a man's, `«PER_1»` when the name is ambiguous (Reyes, Cruz) or unknown. The model keeps Spanish agreement ("la demandante") without seeing the name, so there is no need to leave given names in cleartext with `except('person')`. The gender comes from the census (INE) for Spanish names and from the US Social Security records (SSA) for English ones, and belongs to the word, like its token; honorifics stay in cleartext anyway. Set `gender` to `false` in the config to keep every given name neutral.
 - Grammatical particles stay in cleartext too: "John de la Cruz" reads `«PER_M_1» de la «AP_3»`.
 - The ways a document writes a word ("García", "GARCÍA", "GARCIA") share its token, so the model sees one person. Case and accents are ignored, ñ and ç are not (Peña and Pena are different surnames).
 - Restoration is exact: each token maps back to the literal word. A word seen in several forms restores to the one that fits its line: the capitals form among words in capitals ("PARTE: JUAN GARCÍA"), the other one in running text ("el demandante Juan García"). A word seen in one form always restores to exactly that form.
@@ -275,6 +275,7 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | `data/en/names.php` | ~7,300 | US SSA baby name applications, aggregate occurrences >= 100 (via [hackerb9/ssa-baby-names](https://github.com/hackerb9/ssa-baby-names)) |
 | `data/en/surnames.php` | ~162,000 | US Census Bureau, 2010 release, count >= 100 |
 | `data/en/names_ambiguous.php` | 31 | hand-curated (flower, gem and virtue names) |
+| `data/en/names_gender.php` | ~6,200 | US SSA, 1880-2020: `f` or `m` when 95% or more of the babies given the name share it; ambiguous names (Taylor, Jordan) left out |
 
 Extend them or point `data_path` in the config to your own directory with the same filenames. Static PHP arrays are cached by opcache in shared memory, so they load once per server, not per request.
 
