@@ -59,6 +59,25 @@ class TokenMapTest extends TestCase
         $this->assertSame('12345678Z, +34 600 123 123', $map->restore('«DNI_1», «TEL_1»'));
     }
 
+    public function test_own_types_grouped_like_names_regroup_and_survive_to_array(): void
+    {
+        $strategy = new TokenStrategy('«%s_%d»', ['client' => 'CLIENT']);
+        $token = fn (TokenMap $map, string $value) => $map->replacementFor(new Span(0, strlen($value), 'client', $value), $strategy);
+
+        // Literal at first: each written form gets its own token.
+        $map = new TokenMap();
+        $this->assertSame('«CLIENT_1»', $token($map, 'Acme Health'));
+        $this->assertSame('«CLIENT_2»', $token($map, 'ACME HEALTH'));
+
+        // Grouped from now on; the token already issued still restores.
+        $map->groupLikeNames(['client']);
+        $this->assertSame('«CLIENT_1»', $token($map, 'ACME HEALTH'));
+        $this->assertSame('ACME HEALTH', $map->restore('«CLIENT_2»'));
+
+        // A map loaded from the vault keeps grouping the type.
+        $this->assertSame('«CLIENT_1»', $token(TokenMap::fromArray($map->toArray()), 'Acme health'));
+    }
+
     public function test_a_map_saved_by_1_2_still_groups_its_values(): void
     {
         $map = TokenMap::fromArray([

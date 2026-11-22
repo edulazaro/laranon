@@ -47,7 +47,7 @@ final class ValueKey
     public static function of(string $type, string $value): string
     {
         return match (true) {
-            self::isName($type) => self::withoutAccents(mb_strtolower(strtr($value, self::HYPHENS))),
+            self::isName($type) => self::name($value),
             in_array($type, self::IDENTIFIER_TYPES, true) => strtoupper(Separators::strip($value, './')),
             $type === 'phone' => self::phone($value),
             $type === 'email' => mb_strtolower($value),
@@ -77,6 +77,15 @@ final class ValueKey
     public static function isName(string $type): bool
     {
         return in_array($type, self::NAME_TYPES, true);
+    }
+
+    /**
+     * The key of a value grouped like a name: without case or accents, ñ and
+     * ç kept.
+     */
+    public static function name(string $value): string
+    {
+        return self::withoutAccents(mb_strtolower(strtr($value, self::HYPHENS)));
     }
 
     /**

@@ -107,6 +107,25 @@ class AnonymizerTest extends TestCase
         $this->assertSame('DNI «DNI_1», también escrito «DNI_1», y teléfono «TEL_1» o «TEL_1».', $result->text);
     }
 
+    public function test_own_entity_types_share_their_token_across_written_forms(): void
+    {
+        $result = $this->anonymizer()
+            ->withEntities([['value' => 'Acme Health', 'type' => 'client']])
+            ->anonymize("PARTE: ACME HEALTH\nContra Acme Health se dirige la acción.");
+
+        $this->assertSame("PARTE: «CLIENT_1»\nContra «CLIENT_1» se dirige la acción.", $result->text);
+        $this->assertSame("PARTE: ACME HEALTH\nContra Acme Health se dirige la acción.", $result->restore($result->text));
+    }
+
+    public function test_variants_false_keeps_each_written_form_apart(): void
+    {
+        $result = $this->anonymizer()
+            ->withEntities([['value' => 'Acme Health', 'type' => 'client']], variants: false)
+            ->anonymize('ACME HEALTH contra Acme Health.');
+
+        $this->assertSame('«CLIENT_1» contra «CLIENT_2».', $result->text);
+    }
+
     public function test_a_known_entity_in_capitals_shares_its_token(): void
     {
         $result = $this->anonymizer()->withEntities(['Acme Health'])->anonymize('ACME HEALTH contra Acme Health.');

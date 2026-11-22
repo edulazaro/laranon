@@ -32,6 +32,9 @@ final class TokenMap
     /** @var array<string, array<int, string>> "type|key" => written forms, first seen first */
     protected array $forms = [];
 
+    /** @var array<string, true> own types grouped like names (see groupLikeNames()) */
+    protected array $nameTypes = [];
+
     /** @var array<string, array<int, array{0: string, 1: bool}>>|null */
     private ?array $heads = null;
 
@@ -48,13 +51,56 @@ final class TokenMap
      * @param array<string, string> $index "type|key" => replacement
      * @param array<string, int> $counters type => last index used
      * @param array<string, array<int, string>> $forms "type|key" => written forms
+     * @param array<int, string> $nameTypes own types grouped like names
      */
     public function __construct(
         protected array $entries = [],
         array $index = [],
         protected array $counters = [],
         array $forms = [],
+        array $nameTypes = [],
     ) {
+        $this->nameTypes = array_fill_keys($nameTypes, true);
+
+        $this->regroup($index, $forms);
+    }
+
+    /**
+     * Group the written forms of these types like names ("Acme Health" and
+     * "ACME HEALTH" share a token and restore by context). For the types an
+     * application gives its known entities (withEntities()); the built-in
+     * name types are always grouped this way. Values already in the map are
+     * regrouped.
+     *
+     * @param array<int, string> $types
+     */
+    public function groupLikeNames(array $types): void
+    {
+        $new = array_diff($types, array_keys($this->nameTypes), ValueKey::NAME_TYPES);
+
+        if ($new === []) {
+            return;
+        }
+
+        $this->nameTypes += array_fill_keys($new, true);
+
+        $this->regroup($this->index, $this->forms);
+    }
+
+    /**
+     * Rebuild the index keys from the values, merging the keys that now group
+     * together. The first replacement of a group wins; the others stay in the
+     * entries, so they still restore.
+     *
+     * @param array<string, string> $index
+     * @param array<string, array<int, string>> $forms
+     */
+    private function regroup(array $index, array $forms): void
+    {
+        $this->index = [];
+        $this->forms = [];
+        $this->contextual = null;
+
         foreach ($index as $key => $replacement) {
             $key = (string) $key;
             $type = (string) strstr($key, '|', true);
@@ -67,6 +113,11 @@ final class TokenMap
                 $this->addForm($grouped, (string) $value);
             }
         }
+    }
+
+    protected function groupsLikeName(string $type): bool
+    {
+        return ValueKey::isName($type) || isset($this->nameTypes[$type]);
     }
 
     /**
@@ -119,7 +170,7 @@ final class TokenMap
 
     protected function keyFor(string $type, string $value): string
     {
-        return $type . '|' . ValueKey::of($type, $value);
+        return $type . '|' . (isset($this->nameTypes[$type]) ? ValueKey::name($value) : ValueKey::of($type, $value));
     }
 
     protected function addForm(string $key, string $value): void
@@ -399,7 +450,7 @@ final class TokenMap
         foreach ($this->index as $key => $replacement) {
             $forms = $this->forms[$key] ?? [];
 
-            if (count($forms) > 1 && isset($this->entries[$replacement]) && ValueKey::isName((string) strstr((string) $key, '|', true))) {
+            if (count($forms) > 1 && isset($this->entries[$replacement]) && $this->groupsLikeName((string) strstr((string) $key, '|', true))) {
                 $contextual[(string) $replacement] = $forms;
             }
         }
@@ -489,6 +540,7 @@ final class TokenMap
             'index' => $this->index,
             'counters' => $this->counters,
             'forms' => $this->forms,
+            'name_types' => array_keys($this->nameTypes),
         ];
     }
 
@@ -499,6 +551,7 @@ final class TokenMap
             $payload['index'] ?? [],
             $payload['counters'] ?? [],
             $payload['forms'] ?? [],
+            $payload['name_types'] ?? [],
         );
     }
 }

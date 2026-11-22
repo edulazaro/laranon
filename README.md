@@ -166,6 +166,26 @@ Laranon::withModels($case->clients)->anonymize($text);
 
 Use entities for values with no ambiguity (emails, phones, company names). Person names are already covered by the per-word detector; feeding them as whole-string entities would fight it.
 
+#### Written forms of an entity
+
+Entities are found in any case. By default the ways a text writes one ("Acme Health", "ACME HEALTH") share a single token, whatever type you give it, so the model sees one company; the token restores to the form that fits its line, as names do:
+
+```php
+Laranon::withEntities([
+    ['value' => 'Initech SL'],                     // no type: 'entity'
+    ['value' => 'Acme Health', 'type' => 'client'], // your own type
+])->anonymize('ACME HEALTH contra Acme Health.');
+// "«CLIENT_1» contra «CLIENT_1»."
+```
+
+For values where case means something (codes, references), pass `variants: false` and each written form gets its own token:
+
+```php
+Laranon::withEntities([['value' => 'AB-12', 'type' => 'ref']], variants: false);
+```
+
+`withStableEntities()` and `withModels()` take the same option. The default `entity` type always shares its token.
+
 ### Stable tokens for known entities
 
 Values you own that have a database id (a company, an email) can pin their placeholder to it instead of the ad-hoc first-seen counter, so the same record gets the same token in every scope and every call:
