@@ -531,6 +531,24 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values($es, 'La Dirección General de Seguridad Jurídica.'));
     }
 
+    public function test_italian_names_in_both_orders_with_particles_and_honorifics(): void
+    {
+        $it = new \EduLazaro\Laranon\Recognizers\It\PersonNameRecognizer();
+        $typed = fn (string $text) => array_map(fn ($span) => [$span->value, $span->type], SpanResolver::resolve($it->detect($text)));
+
+        $this->assertSame([['Mario', 'surname'], ['Rossi', 'surname']], $typed('Il Sig. Mario Rossi ha firmato.'));
+        $this->assertSame([['ROSSI', 'surname'], ['Mario', 'person']], $typed('Causa promossa da ROSSI Mario contro la società.'));
+        $this->assertSame([['Daniele', 'person'], ['Rossi', 'surname'], ['Alessandro', 'person'], ['Piero', 'surname']], $typed('Daniele De Rossi e Alessandro Del Piero.'));
+        $this->assertSame([['Gianluca', 'person'], ['Vialli', 'surname']], $typed('Gianluca Vialli ha segnato.'));
+
+        foreach (['Il Tribunale di Milano.', 'La Corte di Cassazione ha rigettato il ricorso.', 'Il Presidente della Repubblica.', 'La Stella Polare.'] as $text) {
+            $this->assertSame([], $typed($text), $text);
+        }
+
+        // Andrea is a man's name in Italy and a woman's in Spain: no gender.
+        $this->assertNull(SpanResolver::resolve($it->detect('Andrea Bocelli canta.'))[0]->gender);
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

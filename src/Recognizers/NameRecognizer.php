@@ -700,7 +700,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     }
 
     /**
-     * The closed classes of Spanish, Catalan, English and French grammar: prepositions,
+     * The closed classes of Spanish, Catalan, English, French and Italian grammar: prepositions,
      * articles and contractions, determiners, possessives, pronouns and
      * conjunctions, plus the forms of "be" and "have". They open sentences
      * and clauses ("Esta Sala", "Si Juan García", "Sobre la base", "Per the
@@ -709,8 +709,9 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      * almost always starts the text around it. They are never name words,
      * and a name ends where one appears. The particles of names (de, del,
      * la, le, du, van, da...) are not here, and neither are the words that
-     * are also frequent names or surnames: Ella, Elle, Ha, Han, He, Jo, Ma,
-     * Mas, Ni, Ou, Quan, Sa, Son, Su, Tu.
+     * are also frequent names or surnames: Ai, Alla, Come (Côme), Dai,
+     * Ed, Ella, Elle, Ha, Han, He, Jo, Lei, Ma, Mas, Mia, Nel, Nella, Ni,
+     * Ou, Perche, Prima, Quan, Queste, Sa, Son, Su, Sue, Tu.
      *
      * @return array<int, string>
      */
@@ -768,6 +769,17 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
             'pour', 'par', 'sur', 'sous', 'avec', 'sans', 'dans', 'vers', 'chez', 'contre', 'depuis',
             'pendant', 'selon', 'avant', 'apres', 'malgre', 'parmi',
             'est', 'sont', 'etait', 'ont', 'avait',
+            // Italian articles and contractions that are not name particles.
+            'il', 'gli', 'uno', 'agli', 'nello', 'nei', 'negli', 'nelle', 'sul', 'sullo', 'sulla', 'sui',
+            'sugli', 'sulle',
+            // Italian prepositions, determiners, pronouns and conjunctions.
+            'tra', 'fra', 'presso', 'secondo', 'contro', 'senza', 'sopra', 'sotto', 'verso', 'circa', 'dopo',
+            'che', 'chi', 'non', 'quando', 'dove', 'questo', 'questa', 'questi', 'quello', 'quella', 'quelli',
+            'quelle', 'suo', 'sua', 'suoi', 'mio', 'miei', 'mie', 'tuo', 'tua', 'nostro', 'vostro', 'loro',
+            'lui', 'egli', 'essi', 'esse', 'noi', 'voi', 'io', 'ogni', 'tutto', 'tutti', 'tutta', 'tutte',
+            'altro', 'altri', 'altre', 'stesso', 'stessa', 'detto', 'detta', 'suddetto',
+            // Italian forms of essere and avere.
+            'sono', 'hanno', 'essere', 'stato', 'stata',
         ];
     }
 

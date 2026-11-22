@@ -15,7 +15,7 @@ class PersonNameRecognizer extends NameRecognizer
     /**
      * Name particles, matched in any case.
      */
-    protected const FR_PARTICLES = 'de\s+la|de|du|des|le|la';
+    protected const CASED_PARTICLES = 'de\s+la|de|du|des|le|la';
 
     /**
      * A surname in capitals: DUPONT, D'ARTAGNAN, SAINT-EXUPÉRY.
@@ -29,7 +29,7 @@ class PersonNameRecognizer extends NameRecognizer
         // (Mme Marie Dupont), also one that opens with a particle (M. de
         // Villepin).
         return '/(?<![\p{L}\p{N}])(?:M\.|MM\.|Mmes?\.?|Mlles?\.?|Me\.?|Dr\.?|Pr\.?|(?i:Monsieur|Messieurs|Madame|Mesdames|Mademoiselle|Ma[iî]tre|Docteur|Professeur))\s+'
-            . '((?:(?i:' . self::FR_PARTICLES . ')\s+)?' . $this->honorificName() . ')/u';
+            . '((?:(?i:' . static::CASED_PARTICLES . ')\s+)?' . $this->honorificName() . ')/u';
     }
 
     /**
@@ -41,7 +41,7 @@ class PersonNameRecognizer extends NameRecognizer
         $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*(?<![\'’])';
         $next = '(?:' . $word . '|' . self::PREFIXED_WORD . ')';
 
-        return $word . '(?:\s+(?i:' . self::FR_PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';
+        return $word . '(?:\s+(?i:' . static::CASED_PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';
     }
 
     protected function namePattern(): string
@@ -51,7 +51,7 @@ class PersonNameRecognizer extends NameRecognizer
         $next = '(?:' . self::NAME_WORD . '|' . self::CAPS_WORD . '|' . self::PREFIXED_WORD . ')';
 
         return '/(?<![\p{L}\p{N}])' . self::NAME_WORD
-            . '(?:\s+(?i:' . self::FR_PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
+            . '(?:\s+(?i:' . static::CASED_PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     /**
@@ -74,7 +74,7 @@ class PersonNameRecognizer extends NameRecognizer
     protected function upperNamePattern(): ?string
     {
         return '/(?<![\p{L}\p{N}])' . self::CAPS_WORD
-            . '(?:\h+(?i:' . self::FR_PARTICLES . ')\h+' . self::CAPS_WORD . '|\h+' . self::CAPS_WORD . '){0,2}'
+            . '(?:\h+(?i:' . static::CASED_PARTICLES . ')\h+' . self::CAPS_WORD . '|\h+' . self::CAPS_WORD . '){0,2}'
             . '\h+' . self::NAME_WORD . '(?:\h+' . self::NAME_WORD . ')?(?![\p{L}\p{N}])/u';
     }
 

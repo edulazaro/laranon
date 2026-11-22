@@ -159,14 +159,14 @@ class AnonymizerTest extends TestCase
 
         $this->assertSame('es', $session->map()->language());
         $this->assertSame(['es'], $this->anonymizer()->languagesFor('612345678', $session->map()));
-        $this->assertSame(['es', 'en', 'fr', 'ca'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
     }
 
     public function test_a_text_in_a_language_with_no_pack_is_read_in_all(): void
     {
         $german = 'Der Beklagte hat die Forderung bestritten und beantragt, die Klage abzuweisen, da der Vertrag nicht wirksam zustande gekommen sei.';
 
-        $this->assertSame(['es', 'en', 'fr', 'ca'], $this->anonymizer()->languagesFor($german, new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor($german, new TokenMap()));
     }
 
     public function test_a_french_text_is_read_with_the_french_pack(): void
@@ -176,6 +176,17 @@ class AnonymizerTest extends TestCase
         $this->assertSame(['fr'], $this->anonymizer()->languagesFor($text, new TokenMap()));
         $this->assertSame(
             "«AP_1» «PER_M_1» signe le contrat avec la société défenderesse. Le Tribunal judiciaire de Lyon l'a confirmé.",
+            $this->anonymizer()->anonymize($text)->text,
+        );
+    }
+
+    public function test_an_italian_text_is_read_with_the_italian_pack(): void
+    {
+        $text = "Il Tribunale di Milano, nella causa promossa da ROSSI Mario contro la società, ha accolto il ricorso.";
+
+        $this->assertSame(['it'], $this->anonymizer()->languagesFor($text, new TokenMap()));
+        $this->assertSame(
+            "Il Tribunale di Milano, nella causa promossa da «AP_1» «PER_1» contro la società, ha accolto il ricorso.",
             $this->anonymizer()->anonymize($text)->text,
         );
     }

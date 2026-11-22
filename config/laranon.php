@@ -4,6 +4,7 @@ use EduLazaro\Laranon\Locales\CaPack;
 use EduLazaro\Laranon\Locales\EnPack;
 use EduLazaro\Laranon\Locales\EsPack;
 use EduLazaro\Laranon\Locales\FrPack;
+use EduLazaro\Laranon\Locales\ItPack;
 use EduLazaro\Laranon\Recognizers\Universal\BicSwiftRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\CreditCardRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\EmailRecognizer;
@@ -31,13 +32,14 @@ return [
     |
     */
 
-    'locales' => ['es', 'en', 'fr', 'ca'],
+    'locales' => ['es', 'en', 'fr', 'ca', 'it'],
 
     'packs' => [
         'es' => EsPack::class,
         'en' => EnPack::class,
         'fr' => FrPack::class,
         'ca' => CaPack::class,
+        'it' => ItPack::class,
     ],
 
     'universal' => [
