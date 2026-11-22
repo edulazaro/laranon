@@ -30,6 +30,22 @@ final class Checksums
     }
 
     /**
+     * Spanish NIF K, L or M (Spaniards under 14, Spaniards abroad, foreigners
+     * without an NIE): the letter, 7 digits and the DNI control letter of
+     * those 7 digits.
+     */
+    public static function nifKlm(string $value): bool
+    {
+        $value = strtoupper(Separators::strip($value, '.'));
+
+        if (! preg_match('/^[KLM](\d{7})([A-Z])$/', $value, $m)) {
+            return false;
+        }
+
+        return self::dniLetter((int) $m[1]) === $m[2];
+    }
+
+    /**
      * Spanish NIE: X/Y/Z + 7 digits + mod-23 control letter, where the
      * leading letter maps to 0/1/2.
      */

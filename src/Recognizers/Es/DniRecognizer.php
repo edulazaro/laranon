@@ -22,11 +22,14 @@ class DniRecognizer extends RegexRecognizer
             // Digits grouped by blanks ("12 345 678 Z"). Uppercase letter only:
             // "pagó 12 345 678 a Juan" is an amount followed by a word.
             '/(?<![\dA-Za-z])\d{2}' . Separators::BLANK . '\d{3}' . Separators::BLANK . '\d{3}' . Separators::GAP . '[A-Z](?![\dA-Za-z])/' => 1.0,
+            // The NIF K, L or M of a person with no DNI or NIE: the letter, 7
+            // digits and the DNI control letter of those digits.
+            '/(?<![\dA-Za-z])[KLMklm]' . Separators::GAP . '(?:\d\.\d{3}\.\d{3}|\d{7})' . Separators::GAP . '[A-Za-z](?![\dA-Za-z])/' => 1.0,
         ];
     }
 
     protected function validate(string $value): bool
     {
-        return Checksums::dni($value);
+        return Checksums::dni($value) || Checksums::nifKlm($value);
     }
 }

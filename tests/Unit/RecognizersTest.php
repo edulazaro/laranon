@@ -21,6 +21,14 @@ class RecognizersTest extends TestCase
         $this->assertSame('dni', $spans[0]->type);
     }
 
+    public function test_nif_k_l_m_carries_the_dni_control_letter_of_its_digits(): void
+    {
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, (new DniRecognizer())->detect($text));
+
+        $this->assertSame(['K1234567L', 'L-1234567-L', 'M7654321J'], $values('NIF K1234567L, L-1234567-L y M7654321J.'));
+        $this->assertSame([], $values('NIF K1234567A, L7654321Z y M1234567J.'));
+    }
+
     public function test_dni_with_digits_grouped_by_blanks(): void
     {
         $spans = (new DniRecognizer())->detect("NIF 12 345 678 Z y NIF 12\u{00A0}345\u{00A0}678-Z.");
