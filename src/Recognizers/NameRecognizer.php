@@ -205,16 +205,20 @@ abstract class NameRecognizer implements Recognizer
                 continue;
             }
 
-            if (! preg_match_all($honorific['pattern'], $text, $matches, PREG_OFFSET_CAPTURE)) {
-                continue;
-            }
+            // The search goes on right after the part of a match kept as a
+            // name, not after the match: what a match took past the end of the
+            // name ("García Martínez⏎D. Manuel") is read again.
+            $position = 0;
 
-            foreach ($matches[1] as [$value, $offset]) {
-                if ($value !== '') {
-                    $value = substr($value, 0, $this->nameLength($value, $offset));
+            while (preg_match($honorific['pattern'], $text, $match, PREG_OFFSET_CAPTURE, $position) === 1) {
+                [$value, $offset] = $match[1];
+                $kept = $value === '' ? 0 : $this->nameLength($value, $offset);
 
-                    array_push($spans, ...$this->splitNameWords($value, $offset, 0.95, $honorific['loneWordType']));
+                if ($kept > 0) {
+                    array_push($spans, ...$this->splitNameWords(substr($value, 0, $kept), $offset, 0.95, $honorific['loneWordType']));
                 }
+
+                $position = max($offset + $kept, $match[0][1] + 1);
             }
         }
 

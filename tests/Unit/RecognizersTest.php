@@ -324,6 +324,16 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Juan', 'García'], $values("Juan García\nLópez Ruiz comparece."));
     }
 
+    public function test_an_honorific_on_the_next_line_starts_a_name_of_its_own(): void
+    {
+        $spans = SpanResolver::resolve((new PersonNameRecognizer())->detect("Magistrados:\nD. Antonio García Martínez\nD. Manuel\nD.ª Luz\nDña. Pilar Ruiz"));
+
+        $this->assertSame(
+            [['Antonio', 'person'], ['García', 'surname'], ['Martínez', 'surname'], ['Manuel', 'person'], ['Luz', 'person'], ['Pilar', 'person'], ['Ruiz', 'surname']],
+            array_map(fn ($span) => [$span->value, $span->type], $spans),
+        );
+    }
+
     public function test_a_surname_wrapped_inside_prose_stays_in_the_name(): void
     {
         $recognizer = new PersonNameRecognizer();
