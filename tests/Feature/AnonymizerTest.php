@@ -241,6 +241,21 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_a_short_paragraph_is_read_in_the_language_of_its_document(): void
+    {
+        // "dos" is Portuguese and Spanish, "va" Catalan and Spanish: a heading
+        // has too few words to tell them apart.
+        $paragraph = 'El Juzgado de Primera Instancia estimó íntegramente la demanda interpuesta por la parte actora, al considerar '
+            . 'acreditado que el demandado no había abonado las cantidades reclamadas pese a los sucesivos requerimientos '
+            . 'extrajudiciales. En consecuencia, condenó al demandado al pago de la deuda principal, de los intereses legales '
+            . 'devengados desde la fecha de la interpelación judicial y de las costas causadas en la instancia. Contra dicha '
+            . 'resolución cabe recurso de apelación ante la Audiencia Provincial, que deberá interponerse en el plazo de veinte '
+            . 'días hábiles desde su notificación, previa consignación del depósito exigido por la ley.';
+        $document = "## Los dos errores que se repiten\n\n{$paragraph}\n\n## La primera vía va dentro de un producto";
+
+        $this->assertSame(['es'], $this->anonymizer()->languagesFor($document, new TokenMap()));
+    }
+
     public function test_a_pack_removed_from_the_locales_is_never_used(): void
     {
         $this->app['config']->set('laranon.locales', ['es', 'en']);

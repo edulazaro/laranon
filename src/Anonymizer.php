@@ -441,15 +441,44 @@ class Anonymizer
         }
 
         $this->detector ??= LanguageDetector::create();
-        $clear = $this->detector->hasEnoughText($text) ? $this->clearLanguage($this->detector->scores($text)) : null;
+        $scores = $this->detector->hasEnoughText($text) ? $this->detector->scores($text) : [];
+        $clear = $this->clearLanguage($scores);
 
         if ($clear !== null && ! in_array($clear, $available, true)) {
             return $available;
         }
 
-        $found = [];
+        // The document's language among the packs, from the same scores.
+        $document = $this->clearLanguage(array_filter(
+            $scores,
+            fn (string $code) => in_array(strtolower(explode('-', $code)[0]), $available, true),
+            ARRAY_FILTER_USE_KEY,
+        ));
+
+        $found = $document !== null ? [$document] : [];
 
         foreach (preg_split('/\R\h*\R/u', $text) as $paragraph) {
+            if ($document !== null) {
+                // A paragraph is read in the document's language when its words
+                // agree with it, and when it is too short for n-grams, since a
+                // few words mislead between close languages ("va", "mes" and
+                // "dos" are Spanish too). A long one whose words point to
+                // another language adds it when its n-grams agree.
+                $words = $this->languagesByWords($paragraph, $available);
+
+                if ($words === [] || in_array($document, $words, true) || ! $this->packDetector->hasEnoughText($paragraph)) {
+                    continue;
+                }
+
+                $languages = $this->paragraphLanguages($paragraph, $available);
+
+                if (count($languages) === 1) {
+                    $found[] = $languages[0];
+                }
+
+                continue;
+            }
+
             array_push($found, ...$this->paragraphLanguages($paragraph, $available));
         }
 
@@ -488,6 +517,19 @@ class Anonymizer
     }
 
     /**
+     * The pack languages with the most grammatical words in the paragraph.
+     *
+     * @param array<int, string> $available
+     * @return array<int, string>
+     */
+    protected function languagesByWords(string $paragraph, array $available): array
+    {
+        $words = ($this->packDetector ??= LanguageDetector::create($available))->wordCounts($paragraph);
+
+        return $words === [] ? [] : array_keys(array_filter($words, fn (int $count) => $count === reset($words)));
+    }
+
+    /**
      * The languages of one paragraph, among the $available ones. A paragraph
      * too short for its n-grams (see LanguageDetector::hasEnoughText()) is
      * told by its grammatical words alone ("Llamar al ..." is Spanish or
@@ -503,8 +545,7 @@ class Anonymizer
     protected function paragraphLanguages(string $paragraph, array $available): array
     {
         $detector = $this->packDetector ??= LanguageDetector::create($available);
-        $words = $detector->wordCounts($paragraph);
-        $most = $words === [] ? [] : array_keys(array_filter($words, fn (int $count) => $count === reset($words)));
+        $most = $this->languagesByWords($paragraph, $available);
 
         if (! $detector->hasEnoughText($paragraph)) {
             return $most;
