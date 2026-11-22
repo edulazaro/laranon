@@ -285,6 +285,21 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 
 Extend them or point `data_path` in the config to your own directory with the same filenames. Static PHP arrays are cached by opcache in shared memory, so they load once per server, not per request.
 
+### Language detection
+
+`EduLazaro\Laranon\Support\LanguageDetector` tells the language of a text among 116, with no AI and no dependency: it ranks the sequences of one to three letters of the text by frequency and compares that ranking with each language's (Cavnar and Trenkle's n-gram method).
+
+```php
+use EduLazaro\Laranon\Support\LanguageDetector;
+
+(new LanguageDetector())->detect('Le demandeur expose que la société défenderesse...'); // "fr"
+(new LanguageDetector(['es', 'en', 'fr']))->scores($text);                          // ['es' => 0.51, 'fr' => ...]
+```
+
+`detect()` returns null when it cannot tell: a text with no letters, or a runner-up within 0.025 of the best score (a word or two, a mixed text, pt-BR against pt-PT).
+
+It is based on [patrickschur/language-detection](https://github.com/patrickschur/language-detection): the same algorithm and the same language profiles (`data/languages`, MIT License, Copyright (c) Patrick Schur), so it gives exactly the same scores. A test checks them against that package.
+
 ## Configuration
 
 `config/laranon.php` controls:
