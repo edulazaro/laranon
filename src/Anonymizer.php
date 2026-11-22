@@ -293,6 +293,8 @@ class Anonymizer
      */
     public function scan(string $text, ?TokenMap $map = null): array
     {
+        $this->assertOnlyKnownTypes();
+
         $map ??= $this->loadMap();
         $spans = [];
 
@@ -421,6 +423,36 @@ class Anonymizer
         }
 
         return ! (TokenMap::endsWithWordChar($span->value) && TokenMap::startsWithWordChar(substr($text, $span->end())));
+    }
+
+    /**
+     * only() with a type no recognizer produces ("dnii" for "dni") would
+     * detect nothing, and the result would look exactly like a text with no
+     * PII. Checked here, when detecting, so a type that withEntities() adds
+     * later in the chain is known. except() is not checked: a typo there only
+     * anonymizes more.
+     */
+    protected function assertOnlyKnownTypes(): void
+    {
+        if ($this->only === null) {
+            return;
+        }
+
+        $known = [];
+
+        foreach (array_merge($this->recognizers, $this->extraRecognizers) as $recognizer) {
+            foreach (method_exists($recognizer, 'types') ? $recognizer->types() : [$recognizer->type()] as $type) {
+                $known[$type] = true;
+            }
+        }
+
+        $unknown = array_values(array_filter($this->only, fn (string $type) => ! isset($known[$type])));
+
+        if ($unknown !== []) {
+            throw new InvalidArgumentException(
+                'Unknown laranon type [' . implode(', ', $unknown) . '] in only(). Known types: ' . implode(', ', array_keys($known)) . '.'
+            );
+        }
     }
 
     protected function typeAllowed(string $type): bool

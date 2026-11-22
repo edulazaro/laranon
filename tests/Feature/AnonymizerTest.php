@@ -65,6 +65,29 @@ class AnonymizerTest extends TestCase
         $this->assertStringNotContainsString('maria@example.com', $result->text);
     }
 
+    public function test_only_with_an_unknown_type_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('[dnii]');
+
+        $this->anonymizer()->only(['dnii'])->anonymize('DNI 12345678Z.');
+    }
+
+    public function test_only_accepts_every_type_a_recognizer_emits(): void
+    {
+        $surnames = $this->anonymizer()->only('surname')->anonymize('Firma María López.');
+
+        $clients = $this->anonymizer()->only('client')
+            ->withEntities([['value' => 'Initech SL', 'type' => 'client']])
+            ->anonymize('Contra Initech SL.');
+
+        $this->assertSame('Firma María «AP_1».', $surnames->text);
+        $this->assertSame('Contra «CLIENT_1».', $clients->text);
+
+        // A typo in except() only anonymizes more, so it does not throw.
+        $this->assertSame('Firma «PER_1» «AP_1».', $this->anonymizer()->except('persona')->anonymize('Firma María López.')->text);
+    }
+
     public function test_redact_strategy_is_one_way(): void
     {
         $result = $this->anonymizer()->strategy('redact')->anonymize('DNI 12345678Z.');

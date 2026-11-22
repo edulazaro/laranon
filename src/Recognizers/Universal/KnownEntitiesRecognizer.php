@@ -25,6 +25,18 @@ class KnownEntitiesRecognizer implements Recognizer
         return 'entity';
     }
 
+    /**
+     * Every type this recognizer emits: the one of each entity it was given.
+     *
+     * @return array<int, string>
+     */
+    public function types(): array
+    {
+        $types = array_map(fn (array $entity) => $entity['type'] ?? 'entity', $this->entities);
+
+        return array_values(array_unique([$this->type(), ...$types]));
+    }
+
     public function detect(string $text): array
     {
         $spans = [];

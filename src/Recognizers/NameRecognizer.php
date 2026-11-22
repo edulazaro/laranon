@@ -90,6 +90,16 @@ abstract class NameRecognizer implements Recognizer
         return 'person';
     }
 
+    /**
+     * Every type this recognizer emits: the given name and each surname word.
+     *
+     * @return array<int, string>
+     */
+    public function types(): array
+    {
+        return ['person', 'surname'];
+    }
+
     public function detect(string $text): array
     {
         $spans = [];

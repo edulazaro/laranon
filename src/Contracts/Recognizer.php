@@ -6,7 +6,9 @@ interface Recognizer
 {
     /**
      * The span type this recognizer produces (e.g. 'dni', 'email').
-     * Recognizers emitting several types return their default one.
+     * Recognizers emitting several types return their default one, and can
+     * list all of them in a public types(): array method, which only() uses
+     * to reject types no recognizer produces.
      */
     public function type(): string;
 
