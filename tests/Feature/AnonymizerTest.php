@@ -264,6 +264,8 @@ class AnonymizerTest extends TestCase
             '600 12 31 23',       // bare mobile, 3-2-2-2
             '600-12-31-23',       // bare mobile, hyphens
             '915 123 456',        // bare landline
+            '91 123 45 67',       // bare landline, 2-3-2-2
+            '923 12 34 56',       // bare landline, 3-2-2-2
             '+34 612 345 678',    // Spain, prefixed
             '+34612345678',       // Spain, prefixed no separators
             '0034 600 123 123',   // Spain, 00 prefix
@@ -289,6 +291,11 @@ class AnonymizerTest extends TestCase
 
         $this->assertStringNotContainsString('«TEL', $result->text);
         $this->assertSame('Compró 600 unidades por 1.234,56 euros.', $result->restore($result->text));
+
+        // Nine digits followed by a currency or a percent are an amount.
+        foreach (['600.000.000 euros', '912 000 000 €', '700.000.000 EUR', '600 000 000 %'] as $amount) {
+            $this->assertSame("Reclama {$amount}.", $this->anonymizer()->anonymize("Reclama {$amount}.")->text);
+        }
     }
 
     public function test_surname_honorific_types_all_words_as_surname(): void
