@@ -13,6 +13,7 @@ use EduLazaro\Laranon\Recognizers\Es\PersonNameRecognizer;
 use EduLazaro\Laranon\Recognizers\Es\PhoneRecognizer;
 use EduLazaro\Laranon\Recognizers\Es\PlateRecognizer;
 use EduLazaro\Laranon\Recognizers\Es\PostalCodeRecognizer;
+use EduLazaro\Laranon\Recognizers\Es\VatRecognizer;
 
 class EsPack implements LocalePack
 {
@@ -31,6 +32,7 @@ class EsPack implements LocalePack
             new DniRecognizer(),
             new NieRecognizer(),
             new CifRecognizer(),
+            new VatRecognizer(),
             new NssRecognizer(),
             new CccRecognizer(),
             new PhoneRecognizer(),

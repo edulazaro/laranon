@@ -38,6 +38,23 @@ class RecognizersTest extends TestCase
         $this->assertSame(['B-12.345.674', 'B12.345.674'], array_map(fn ($span) => $span->value, $spans));
     }
 
+    public function test_spanish_vat_number_wraps_a_dni_nie_or_cif(): void
+    {
+        $recognizer = new \EduLazaro\Laranon\Recognizers\Es\VatRecognizer();
+
+        foreach (['ESA58818501', 'ES A58818501', 'ES-A58818501', 'ES 12345678Z', 'ESX1234567L'] as $vat) {
+            $spans = $recognizer->detect("NIF-IVA {$vat}.");
+
+            $this->assertCount(1, $spans, $vat);
+            $this->assertSame($vat, $spans[0]->value);
+            $this->assertSame('vat', $spans[0]->type);
+        }
+
+        // A wrong control fails, and the lowercase verb "es" is not a prefix.
+        $this->assertSame([], $recognizer->detect('NIF-IVA ESA58818502.'));
+        $this->assertSame([], $recognizer->detect('El NIF es 12345678Z.'));
+    }
+
     public function test_email_recognizer(): void
     {
         $spans = (new EmailRecognizer())->detect('Escribe a maria.garcia@despacho.legal cuando puedas.');

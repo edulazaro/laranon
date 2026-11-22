@@ -72,6 +72,7 @@ return [
         'dni' => 'DNI',
         'nie' => 'NIE',
         'cif' => 'CIF',
+        'vat' => 'VAT',
         'nss' => 'NSS',
         'ccc' => 'CCC',
         'iban' => 'IBAN',
