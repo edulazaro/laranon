@@ -187,7 +187,7 @@ abstract class NameRecognizer implements Recognizer
 
             foreach ($matches[1] as [$value, $offset]) {
                 if ($value !== '') {
-                    $value = substr($value, 0, $this->lineBoundedLength($value));
+                    $value = substr($value, 0, $this->nameLength($value));
 
                     array_push($spans, ...$this->splitNameWords($value, $offset, 0.95, $honorific['loneWordType']));
                 }
@@ -240,7 +240,7 @@ abstract class NameRecognizer implements Recognizer
      */
     protected function resolveInitialsCandidate(string $value, int $offset): array
     {
-        $value = substr($value, 0, $this->lineBoundedLength($value));
+        $value = substr($value, 0, $this->nameLength($value));
 
         preg_match_all('/\S+/u', $value, $matches);
         $words = $matches[0];
@@ -272,6 +272,19 @@ abstract class NameRecognizer implements Recognizer
 
         while ($start < $end && ! $this->opensName($tokens[$start][0])) {
             $start++;
+        }
+
+        $rest = substr($value, $tokens[$start][1]);
+        $restOffset = $offset + $tokens[$start][1];
+        $keep = $this->nameLength($rest);
+
+        if ($keep < strlen($rest)) {
+            preg_match('/\S/u', $rest, $next, PREG_OFFSET_CAPTURE, $keep);
+
+            return [
+                ...$this->resolveUpperCandidate(substr($rest, 0, $keep), $restOffset),
+                ...$this->resolveUpperCandidate(substr($rest, $next[0][1]), $restOffset + $next[0][1]),
+            ];
         }
 
         while ($end > $start && ! $this->isSurname($tokens[$end][0])) {
@@ -319,7 +332,7 @@ abstract class NameRecognizer implements Recognizer
         // its own: a name can still start there ("Juan Pérez⏎Ana López").
         $rest = substr($value, $tokens[$start][1]);
         $restOffset = $offset + $tokens[$start][1];
-        $keep = $this->lineBoundedLength($rest);
+        $keep = $this->nameLength($rest);
 
         if ($keep < strlen($rest)) {
             preg_match('/\S/u', $rest, $next, PREG_OFFSET_CAPTURE, $keep);
@@ -349,15 +362,27 @@ abstract class NameRecognizer implements Recognizer
 
     /**
      * How much of a candidate is still one name, in bytes: up to its first
-     * line break. What follows a name on the next line is a heading, a role
-     * or a place far more often than the rest of the name ("Martín⏎En
-     * Madrid", "Simon⏎Abogado"), and the surname lists cannot tell them
-     * apart: the US census lists Abogado, Madrid and Ley as surnames. A name
-     * a PDF wraps keeps only its first line.
+     * line break or function word. What follows a name on the next line is a
+     * heading, a role or a place far more often than the rest of the name
+     * ("Martín⏎En Madrid", "Simon⏎Abogado"), and the surname lists cannot
+     * tell them apart: the US census lists Abogado, Madrid and Ley as
+     * surnames. A name a PDF wraps keeps only its first line. A function word
+     * ("Juan García Sobre la base") is never part of a name.
      */
-    protected function lineBoundedLength(string $value): int
+    protected function nameLength(string $value): int
     {
-        return preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1 ? $match[0][1] : strlen($value);
+        $length = preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1 ? $match[0][1] : strlen($value);
+
+        preg_match_all('/\S+/u', substr($value, 0, $length), $matches, PREG_OFFSET_CAPTURE);
+        $functionWords = array_fill_keys($this->functionWords(), true);
+
+        foreach (array_slice($matches[0], 1, null, true) as $i => [$word, $relative]) {
+            if (isset($functionWords[$this->fold($word)])) {
+                return $matches[0][$i - 1][1] + strlen($matches[0][$i - 1][0]);
+            }
+        }
+
+        return $length;
     }
 
     /**
@@ -492,6 +517,29 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
+     * Prepositions, determiners and conjunctions that open sentences and
+     * clauses ("Esta Sala", "Si Juan García", "Sobre la base"). The census
+     * lists some as names (Esta, Ese, Si) or surnames (Contra, Sobre, En),
+     * but a capitalized one beside a name almost always starts the text
+     * around it. They are never name words, and a name ends where one
+     * appears. Words that are also real surnames (Mas, Su, He) are left out.
+     *
+     * @return array<int, string>
+     */
+    protected function functionWords(): array
+    {
+        return [
+            'en', 'por', 'para', 'con', 'sin', 'sobre', 'entre', 'hasta', 'desde', 'ante', 'tras',
+            'segun', 'contra', 'hacia', 'durante', 'mediante', 'bajo',
+            'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'esto', 'eso',
+            'mi', 'que', 'como', 'cuando', 'donde', 'pero', 'porque', 'aunque', 'no', 'si', 'ya',
+            'of', 'in', 'on', 'at', 'to', 'for', 'by', 'with', 'from', 'and', 'or', 'but',
+            'this', 'that', 'these', 'those', 'his', 'her', 'their', 'our', 'its',
+            'as', 'is', 'was', 'be', 'it', 'we', 'you', 'she', 'they',
+        ];
+    }
+
+    /**
      * @return array<string, true>
      */
     protected function loadNames(string $file): array
@@ -499,7 +547,7 @@ abstract class NameRecognizer implements Recognizer
         $path = ($this->dataPath ?? dirname(__DIR__, 2) . '/data') . '/' . $file;
 
         $names = is_file($path) ? require $path : [];
-        $names = array_diff($names, $this->articleBlocklist());
+        $names = array_diff($names, $this->articleBlocklist(), $this->functionWords());
 
         return array_fill_keys($names, true);
     }

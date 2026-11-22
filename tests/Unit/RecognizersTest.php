@@ -256,6 +256,22 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Juan', 'García'], $values("Juan García\nLópez Ruiz comparece."));
     }
 
+    public function test_function_words_are_never_name_words(): void
+    {
+        $es = new PersonNameRecognizer();
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        foreach ([$es, $en] as $recognizer) {
+            $this->assertSame([], $values($recognizer, 'Esta Sala ha visto el recurso.'));
+            $this->assertSame([], $values($recognizer, 'Ese Tribunal estimó el recurso.'));
+        }
+
+        $this->assertSame(['Juan', 'García'], $values($es, 'Si Juan García no comparece.'));
+        $this->assertSame(['Juan', 'García'], $values($es, 'Firma Juan García Sobre la base de lo expuesto.'));
+        $this->assertSame(['MARÍA', 'LÓPEZ', 'GARCÍA', 'JUAN', 'PÉREZ'], $values($es, 'MARÍA LÓPEZ GARCÍA CONTRA JUAN PÉREZ'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();
