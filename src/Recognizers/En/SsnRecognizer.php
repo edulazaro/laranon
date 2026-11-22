@@ -2,14 +2,13 @@
 
 namespace EduLazaro\Laranon\Recognizers\En;
 
-use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * US Social Security Numbers. Separators are required (123-45-6789):
  * a bare 9-digit run is far too ambiguous. Known-invalid ranges excluded.
  */
-class SsnRecognizer extends RegexRecognizer implements LanguageScoped
+class SsnRecognizer extends RegexRecognizer
 {
     public function type(): string
     {

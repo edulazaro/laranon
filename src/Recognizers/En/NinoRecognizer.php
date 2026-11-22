@@ -2,14 +2,13 @@
 
 namespace EduLazaro\Laranon\Recognizers\En;
 
-use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
 /**
  * UK National Insurance Numbers (AB123456C), excluding the prefixes HMRC
  * never issues.
  */
-class NinoRecognizer extends RegexRecognizer implements LanguageScoped
+class NinoRecognizer extends RegexRecognizer
 {
     public function type(): string
     {

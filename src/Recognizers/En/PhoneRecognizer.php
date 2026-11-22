@@ -2,10 +2,9 @@
 
 namespace EduLazaro\Laranon\Recognizers\En;
 
-use EduLazaro\Laranon\Contracts\LanguageScoped;
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 
-class PhoneRecognizer extends RegexRecognizer implements LanguageScoped
+class PhoneRecognizer extends RegexRecognizer
 {
     public function type(): string
     {

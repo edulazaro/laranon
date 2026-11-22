@@ -199,6 +199,30 @@ class AnonymizerTest extends TestCase
         $this->assertSame(['pt'], $this->anonymizer()->languagesFor('O tribunal julgou improcedente o recurso porque o contrato não foi assinado pelas partes dentro do prazo.', new TokenMap()));
     }
 
+    public function test_numbers_are_found_in_a_text_of_any_language(): void
+    {
+        $this->assertSame(
+            'Please draft a letter to «PER_M_1» «AP_1» «AP_2» at Calle Mayor 5, 28013 Madrid, phone «TEL_1».',
+            Anonymizer::create()->anonymize('Please draft a letter to Pedro Ruiz Aranguren at Calle Mayor 5, 28013 Madrid, phone 612 345 678.'),
+        );
+        $this->assertSame(
+            'O autor «PER_1» «AP_1» «AP_2», telefone «TEL_1», mora em Vigo.',
+            Anonymizer::create()->anonymize('O autor João Silva Santos, telefone 612 345 678, mora em Vigo.'),
+        );
+        $this->assertSame(
+            '«PER_1» «AP_1» «AP_2» jaunak «TEL_1» telefonoa du eta Bilbon bizi da.',
+            Anonymizer::create()->anonymize('Jon Etxeberria Agirre jaunak 612 345 678 telefonoa du eta Bilbon bizi da.'),
+        );
+        $this->assertSame(
+            'El cliente «PER_M_1» «AP_1», con SSN «SSN_1», vive en Nueva York.',
+            Anonymizer::create()->anonymize('El cliente John Smith, con SSN 536-90-4399, vive en Nueva York.'),
+        );
+        $this->assertSame(
+            'La empresa tiene sede en el ZIP «ZIP_1» de Nueva York, a nombre de «PER_M_1» «AP_1».',
+            Anonymizer::create()->anonymize('La empresa tiene sede en el ZIP 10001 de Nueva York, a nombre de Robert Brown.'),
+        );
+    }
+
     public function test_a_pack_removed_from_the_locales_is_never_used(): void
     {
         $this->app['config']->set('laranon.locales', ['es', 'en']);
