@@ -75,6 +75,11 @@ class PersonNameRecognizer extends NameRecognizer
         return 'es/names_ambiguous.php';
     }
 
+    protected function commonNamesFile(): ?string
+    {
+        return 'es/names_common.php';
+    }
+
     protected function gendersFile(): ?string
     {
         return 'es/names_gender.php';

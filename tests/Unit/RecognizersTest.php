@@ -227,6 +227,7 @@ class RecognizersTest extends TestCase
             'contra BANCO SANTANDER, S.A.',
             'Vive en SAN SEBASTIÁN, o en San Sebastián.',
             'SANTA CRUZ DE TENERIFE',
+            "FELIPE VI\n\nREY DE ESPAÑA",
         ] as $text) {
             $this->assertSame([], $recognizer->detect($text), $text);
         }

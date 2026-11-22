@@ -71,6 +71,9 @@ abstract class NameRecognizer implements Recognizer
     /** @var array<string, true>|null */
     protected ?array $ambiguousNames = null;
 
+    /** @var array<string, true>|null */
+    protected ?array $commonNames = null;
+
     /** @var array<string, string>|null */
     protected ?array $genders = null;
 
@@ -148,6 +151,17 @@ abstract class NameRecognizer implements Recognizer
      * bare "Luz" is left alone but "Luz Martínez" is not.
      */
     protected function ambiguousNamesFile(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Gazetteer of the given names common enough to open a name in capitals,
+     * or null to let any known given name do it. In capitals there is no case
+     * to go by, and a rare given name that is also a word opens headings
+     * ("REY DE ESPAÑA") far more often than a person's name.
+     */
+    protected function commonNamesFile(): ?string
     {
         return null;
     }
@@ -253,12 +267,12 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
-     * An all-caps run is a name only when it starts with a known given name
+     * An all-caps run is a name only when it starts with a common given name
      * AND ends with a known surname: headings are written in capitals too
-     * ("TRIBUNAL SUPREMO", "SEGUNDO MOTIVO"), and the double gate is what
-     * keeps them out (mixed case only needs the given name). Leading words
-     * that are not a given name ("COMPARECE") and trailing words that are not
-     * a surname are dropped first.
+     * ("TRIBUNAL SUPREMO", "SEGUNDO MOTIVO", "REY DE ESPAÑA"), and the double
+     * gate is what keeps them out (mixed case only needs a known given
+     * name). Leading words that are not a given name ("COMPARECE") and
+     * trailing words that are not a surname are dropped first.
      *
      * @return array<int, Span>
      */
@@ -270,7 +284,7 @@ abstract class NameRecognizer implements Recognizer
         $start = 0;
         $end = count($tokens) - 1;
 
-        while ($start < $end && ! $this->opensName($tokens[$start][0])) {
+        while ($start < $end && ! $this->opensUpperName($tokens[$start][0])) {
             $start++;
         }
 
@@ -477,6 +491,19 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
+     * @return array<string, true>
+     */
+    protected function commonNames(): array
+    {
+        if ($this->commonNames === null) {
+            $file = $this->commonNamesFile();
+            $this->commonNames = $file ? $this->loadNames($file) : [];
+        }
+
+        return $this->commonNames;
+    }
+
+    /**
      * @return array<string, string> folded given name => 'f' or 'm'
      */
     protected function genders(): array
@@ -577,6 +604,16 @@ abstract class NameRecognizer implements Recognizer
     protected function opensName(string $word): bool
     {
         return preg_match('/^\p{Lu}/u', $word) === 1 && isset($this->firstNames()[$this->parts($word)[0]]);
+    }
+
+    /**
+     * Whether a word in capitals can open a name: a known given name, and a
+     * common one when the locale ranks them (see commonNamesFile()).
+     */
+    protected function opensUpperName(string $word): bool
+    {
+        return $this->opensName($word)
+            && ($this->commonNamesFile() === null || isset($this->commonNames()[$this->parts($word)[0]]));
     }
 
     protected function isSurname(string $word): bool
