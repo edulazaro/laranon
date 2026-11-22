@@ -213,6 +213,27 @@ class AnonymizerTest extends TestCase
         $this->assertStringContainsString('«ENT_47»', $second->text);
     }
 
+    public function test_1x_constructor_calls_still_work(): void
+    {
+        $engine = new Anonymizer(
+            [new \EduLazaro\Laranon\Recognizers\Es\DniRecognizer()],
+            ['token' => new \EduLazaro\Laranon\Strategies\TokenStrategy('«%s_%d»', ['dni' => 'DNI'])],
+            'token',
+            new ArrayVaultStore(),
+            null,
+            '«',
+            '»',
+        );
+
+        $result = $engine->anonymize('DNI 12345678Z.');
+        $stream = new \EduLazaro\Laranon\Streaming\StreamDeanonymizer($result->map, '«', '»');
+        $session = new \EduLazaro\Laranon\AnonymizerSession($engine, new TokenMap(), '«', '»');
+
+        $this->assertSame('DNI «DNI_1».', $result->text);
+        $this->assertSame('DNI 12345678Z.', $stream->push($result->text) . $stream->flush());
+        $this->assertSame('DNI «DNI_1».', $session->anonymize('DNI 12345678Z.'));
+    }
+
     public function test_faker_never_picks_a_surrogate_already_in_the_text(): void
     {
         // Whatever surname López gets, one of these texts already contains

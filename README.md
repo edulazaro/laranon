@@ -27,7 +27,7 @@ $result->restore($llmResponse);
 - **Stable scoped tokens.** Within a scope (a conversation, a case), the same value always becomes the same token, across every call, so multi-turn chats stay coherent and can be restored at any point.
 - **Replacements never repeat.** The token map guarantees that two different values never share a replacement, whatever the strategy generates. A shared surrogate would merge two people and garble restoration.
 - **Known entities.** Feed the values you already have (client emails, phones, company names) for exact, total-recall matching where it matters most.
-- **Streaming-safe restore.** Tokens split across SSE chunks (even inside the multibyte `«`) are buffered and restored correctly.
+- **Streaming-safe restore.** Replacements split across SSE chunks (tokens, faker surrogates, even a multibyte character cut in half) are buffered and restored correctly, with any `token_format`.
 - **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes".
 
 ## Install

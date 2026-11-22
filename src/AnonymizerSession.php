@@ -28,6 +28,10 @@ use EduLazaro\Laranon\Support\TokenMap;
  */
 class AnonymizerSession
 {
+    /**
+     * $tokenOpen and $tokenClose are no longer used and are kept so 1.x calls
+     * still work.
+     */
     public function __construct(
         protected Anonymizer $engine,
         protected TokenMap $map,
@@ -61,7 +65,7 @@ class AnonymizerSession
      */
     public function stream(): StreamDeanonymizer
     {
-        return new StreamDeanonymizer($this->map, $this->tokenOpen, $this->tokenClose);
+        return new StreamDeanonymizer($this->map);
     }
 
     /**

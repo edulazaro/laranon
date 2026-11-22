@@ -37,6 +37,9 @@ class Anonymizer
     protected Strategy|string|null $currentStrategy = null;
 
     /**
+     * $tokenOpen and $tokenClose are no longer used (the stream restorer does
+     * not depend on token delimiters) and are kept so 1.x calls still work.
+     *
      * @param array<int, \EduLazaro\Laranon\Contracts\Recognizer> $recognizers
      * @param array<string, Strategy> $strategies
      */
@@ -231,7 +234,7 @@ class Anonymizer
      */
     public function newSession(): AnonymizerSession
     {
-        return new AnonymizerSession($this, new TokenMap(), $this->tokenOpen, $this->tokenClose);
+        return new AnonymizerSession($this, new TokenMap());
     }
 
     /**
@@ -436,7 +439,7 @@ class Anonymizer
             default => $this->loadMap(),
         };
 
-        return new StreamDeanonymizer($map, $this->tokenOpen, $this->tokenClose);
+        return new StreamDeanonymizer($map);
     }
 
     /**

@@ -39,7 +39,6 @@ class LaranonServiceProvider extends ServiceProvider
 
         $this->app->singleton(Anonymizer::class, function ($app) {
             $config = $app['config']['laranon'] ?? [];
-            $format = $config['token_format'] ?? '«%s_%d»';
 
             return new Anonymizer(
                 recognizers: $this->buildRecognizers($config),
@@ -47,8 +46,6 @@ class LaranonServiceProvider extends ServiceProvider
                 defaultStrategy: $config['strategy'] ?? 'token',
                 vault: $app->make(VaultStore::class),
                 ttl: $config['vault']['ttl'] ?? null,
-                tokenOpen: mb_substr($format, 0, 1),
-                tokenClose: mb_substr($format, -1),
             );
         });
 
