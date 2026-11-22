@@ -481,6 +481,27 @@ class RecognizersTest extends TestCase
         $this->assertNull($gender('Dominique Dupont signe.'));
     }
 
+    public function test_y_or_i_joins_surnames_but_not_two_people(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => [$span->value, $span->type], SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame([['Santiago', 'person'], ['Ramón', 'surname'], ['Cajal', 'surname']], $values('Santiago Ramón y Cajal investigó.'));
+        $this->assertSame([['Jordi', 'person'], ['Pujol', 'surname'], ['Soley', 'surname']], $values('Jordi Pujol i Soley signa.'));
+
+        // A given name after the connector opens another person.
+        $this->assertSame(
+            [['Juan', 'person'], ['Pérez', 'surname'], ['María', 'person'], ['López', 'surname']],
+            $values('Comparecen Juan Pérez y María López.'),
+        );
+
+        // A word that is not a surname is not joined, and an honorific after "y" starts its own name.
+        $this->assertSame([['Juan', 'person'], ['Pérez', 'surname']], $values('Firma Juan Pérez y Compañía.'));
+        $this->assertSame([['García', 'surname'], ['López', 'surname']], $values('El Sr. García y Sra. López.'));
+        $this->assertSame([], $values('La empresa A. Pérez e Hijos.'));
+        $this->assertSame([['Ortega', 'surname'], ['Gasset', 'surname']], $values('Lo escribió el Sr. Ortega y Gasset.'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

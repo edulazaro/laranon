@@ -32,7 +32,7 @@ class PersonNameRecognizer extends NameRecognizer
         $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*(?<![\'’])';
         $next = '(?:' . $word . '|' . self::PREFIXED_WORD . ')';
 
-        return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e)\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';
+        return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e|i)\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';
     }
 
     protected function upperNamePattern(): ?string
@@ -49,15 +49,13 @@ class PersonNameRecognizer extends NameRecognizer
 
     protected function namePattern(): string
     {
-        // "y"/"e" are deliberately NOT connectors here (unlike the honorific
-        // pattern): without an explicit title, "Juan Pérez y María López"
-        // is far more often two people in a list than one person's compound
-        // surname ("Ortega y Gasset"), and merging them into a single span
-        // would misattribute PII across two different people.
+        // "y", "e" and "i" join compound surnames ("Ramón y Cajal", "Pujol i
+        // Soley"); nameLength() ends the name there when the next word opens
+        // another person ("Juan Pérez y María López").
         $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
         return '/(?<![\p{L}\p{N}])' . self::NAME_WORD
-            . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
+            . '(?:\s+(?:' . self::PARTICLES . '|y|e|i)\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     protected function firstNamesFile(): string

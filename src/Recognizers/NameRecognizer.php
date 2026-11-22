@@ -212,7 +212,7 @@ abstract class NameRecognizer implements Recognizer
 
             while (preg_match($honorific['pattern'], $text, $match, PREG_OFFSET_CAPTURE, $position) === 1) {
                 [$value, $offset] = $match[1];
-                $kept = $value === '' ? 0 : $this->nameLength($value, $offset);
+                $kept = $value === '' ? 0 : $this->nameLength($value, $offset, $honorific['loneWordType'] === 'surname');
 
                 if ($kept > 0) {
                     array_push($spans, ...$this->splitNameWords(substr($value, 0, $kept), $offset, 0.95, $honorific['loneWordType']));
@@ -431,9 +431,14 @@ abstract class NameRecognizer implements Recognizer
      * Abogado"), and the surname lists cannot tell them apart: the US census
      * lists Abogado, Madrid and Ley as surnames. The exception is a line
      * wrapped inside prose (see wrappedLength()). A function word ("Juan
-     * García Sobre la base") is never part of a name.
+     * García Sobre la base") is never part of a name. A "y", "e" or "i"
+     * joins two surnames ("Santiago Ramón y Cajal", "Jordi Pujol i Soley")
+     * only after a surname, which needs a given name before it unless
+     * $surnamesFirst (a surname honorific: "Sr. Ortega y Gasset"), and only
+     * when the word after it is a known surname and not a given name: "Juan
+     * Pérez y María López" are two people, "Pérez e Hijos" a company.
      */
-    protected function nameLength(string $value, int $offset): int
+    protected function nameLength(string $value, int $offset, bool $surnamesFirst = false): int
     {
         $length = preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1
             ? $this->wrappedLength($value, $match[0][1], $offset)
@@ -443,7 +448,10 @@ abstract class NameRecognizer implements Recognizer
         $functionWords = array_fill_keys($this->functionWords(), true);
 
         foreach (array_slice($matches[0], 1, null, true) as $i => [$word, $relative]) {
-            if (isset($functionWords[$this->fold($word)])) {
+            $next = $matches[0][$i + 1][0] ?? null;
+            $joinsSurnames = $i >= ($surnamesFirst ? 1 : 2) && $next !== null && $this->isSurname($next) && ! $this->opensName($next);
+
+            if (isset($functionWords[$this->fold($word)]) || (in_array($word, ['y', 'e', 'i'], true) && ! $joinsSurnames)) {
                 return $matches[0][$i - 1][1] + strlen($matches[0][$i - 1][0]);
             }
         }
@@ -670,7 +678,7 @@ abstract class NameRecognizer implements Recognizer
     protected function articleBlocklist(): array
     {
         return [
-            'el', 'la', 'los', 'las', 'lo', 'un', 'una', 'unos', 'unas', 'de', 'del', 'y', 'e',
+            'el', 'la', 'los', 'las', 'lo', 'un', 'una', 'unos', 'unas', 'de', 'del', 'y', 'e', 'i',
             'the', 'a', 'an',
             'don', 'dona', 'sr', 'sra', 'srta', 'dr', 'dra', 'ldo', 'lda', 'lcdo', 'lcda',
             'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'lady',
