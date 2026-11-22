@@ -232,62 +232,7 @@ abstract class NameRecognizer implements Recognizer
             }
         }
 
-        if (preg_match_all($this->initialsPattern(), $text, $matches, PREG_OFFSET_CAPTURE)) {
-            foreach ($matches[1] as $i => [$value, $offset]) {
-                if (! $this->isNumbering($matches[0][$i][1])) {
-                    array_push($spans, ...$this->resolveInitialsCandidate($value, $offset));
-                }
-            }
-        }
-
         return $spans;
-    }
-
-    /**
-     * A name opened by initials and no given name ("J. Smith", "Fdo.: A.
-     * García López", "J. R. R. Tolkien"). Its first capturing group holds
-     * the words after the initials. Initials written together ("S.A.",
-     * "S.L.") are company forms and are left out, and so is "D.ª", which
-     * is doña, not an initial.
-     */
-    protected function initialsPattern(): string
-    {
-        $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
-
-        return '/(?<![\p{L}\p{N}.])(?!D\.?ª)' . self::INITIAL . '(?:\s' . self::INITIAL . '){0,2}\s+'
-            . '(' . self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){0,2})(?![\p{L}\p{N}])/u';
-    }
-
-    /**
-     * Whether the capital and dot at $start number something rather than
-     * abbreviate a name: after a number ("artículo 1902 C. Civil") or a
-     * heading word ("Capítulo I. Mayor cuantía") it is a code or a numeral.
-     */
-    protected function isNumbering(int $start): bool
-    {
-        $before = mb_strcut($this->text, max(0, $start - 24), min($start, 24));
-
-        return preg_match('/(?:\d|\b(?:cap[ií]tulo|t[ií]tulo|secci[oó]n|libro|anexo|parte|tomo|apartado))[\h.:]*$/iu', $before) === 1;
-    }
-
-    /**
-     * The words after initials are a name only when the last one is a known
-     * surname. With no given name to type, every word is a surname.
-     *
-     * @return array<int, Span>
-     */
-    protected function resolveInitialsCandidate(string $value, int $offset): array
-    {
-        $value = substr($value, 0, $this->nameLength($value, $offset));
-
-        preg_match_all('/\S+/u', $value, $matches);
-        $words = $matches[0];
-
-        if ($words === [] || ! $this->isSurname(end($words))) {
-            return [];
-        }
-
-        return $this->splitNameWords($value, $offset, 0.85, 'surname');
     }
 
     /**
@@ -664,7 +609,6 @@ abstract class NameRecognizer implements Recognizer
      * but a capitalized one beside a name almost always starts the text
      * around it. They are never name words, and a name ends where one
      * appears. Words that are also real surnames (Mas, Su, He) are left out.
-     * The adjectives of a code ("C. Civil", "Código Penal") are in too.
      *
      * @return array<int, string>
      */
@@ -675,7 +619,7 @@ abstract class NameRecognizer implements Recognizer
             'segun', 'contra', 'hacia', 'durante', 'mediante', 'bajo',
             'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'esto', 'eso',
             'mi', 'que', 'como', 'cuando', 'donde', 'pero', 'porque', 'aunque', 'no', 'si', 'ya',
-            'al', 'todo', 'todos', 'toda', 'todas', 'civil', 'penal',
+            'al', 'todo', 'todos', 'toda', 'todas',
             'of', 'in', 'on', 'at', 'to', 'for', 'by', 'with', 'from', 'and', 'or', 'but',
             'this', 'that', 'these', 'those', 'his', 'her', 'their', 'our', 'its',
             'as', 'is', 'was', 'be', 'it', 'we', 'you', 'she', 'they',

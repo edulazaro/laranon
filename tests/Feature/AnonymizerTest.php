@@ -55,6 +55,21 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_an_initial_and_a_surname_are_covered_once_the_surname_is_known(): void
+    {
+        $this->assertSame('Fdo.: E. Lázaro.', $this->anonymizer()->anonymize('Fdo.: E. Lázaro.')->text);
+
+        $this->assertSame(
+            'Comparece «PER_M_1» «AP_1» «AP_2». Fdo.: E. «AP_1».',
+            $this->anonymizer()->anonymize('Comparece Eduardo Lázaro Rodríguez. Fdo.: E. Lázaro.')->text,
+        );
+
+        $this->assertSame(
+            'Fdo.: E. «AP_1». Comparece «PER_M_1» «AP_1» «AP_2».',
+            $this->anonymizer()->anonymize('Fdo.: E. Lázaro. Comparece Eduardo Lázaro Rodríguez.')->text,
+        );
+    }
+
     public function test_a_closing_quote_is_not_part_of_the_name(): void
     {
         $this->assertSame(

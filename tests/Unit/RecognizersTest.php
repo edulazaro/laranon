@@ -187,16 +187,14 @@ class RecognizersTest extends TestCase
         $this->assertSame(['José', 'García'], $values($es, 'Comparece M.ª José García.'));
         $this->assertSame(['JUAN', 'PÉREZ', 'GARCÍA'], $values($es, 'Comparece JUAN J. PÉREZ GARCÍA.'));
         $this->assertSame(['John', 'Kennedy'], $values($en, 'President John F. Kennedy.'));
-        $this->assertSame(['Smith'], $values($en, 'Signed by J. Smith.'));
 
-        // Company forms written together are not initials.
+        // An initial and a word are not a name on their own: the surname is
+        // only covered once the text names the person in full (see the sweep).
+        $this->assertSame([], $values($es, 'Fdo.: E. Lázaro.'));
+        $this->assertSame([], $values($en, 'Signed by J. Smith.'));
         $this->assertSame([], $values($es, 'Telefónica S.A. Madrid presentó recurso.'));
-
-        // Nor a code or a numeral: after a number or a heading word, or a code's adjective.
         $this->assertSame([], $values($es, 'Según el artículo 1902 C. Civil, procede.'));
-        $this->assertSame([], $values($es, 'Lo dice el C. Civil y el C. Penal.'));
-        $this->assertSame([], $values($es, 'Capítulo I. Mayor cuantía.'));
-        $this->assertSame(['García', 'López'], $values($es, 'Fdo.: A. García López.'));
+        $this->assertSame([], $values($es, 'Hepatitis C. Durante el proceso. Capítulo I. Mayor cuantía.'));
     }
 
     public function test_a_hyphenated_surname_is_one_surname_word(): void
