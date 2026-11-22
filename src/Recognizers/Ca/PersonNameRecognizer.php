@@ -14,6 +14,11 @@ use EduLazaro\Laranon\Recognizers\Es\PersonNameRecognizer as SpanishPersonNameRe
  */
 class PersonNameRecognizer extends SpanishPersonNameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'ca';
+    }
+
     protected function ambiguousNamesFile(): ?string
     {
         return 'ca/names_ambiguous.php';

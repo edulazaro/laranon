@@ -16,6 +16,11 @@ use EduLazaro\Laranon\Recognizers\Fr\PersonNameRecognizer as FrenchPersonNameRec
  */
 class PersonNameRecognizer extends FrenchPersonNameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'it';
+    }
+
     protected const CASED_PARTICLES = 'della|dello|delle|degli|dei|dalla|dalle|dallo|dagli|dai|dal|del|di|de|da|lo|la|li';
 
     protected function surnameHonorificPattern(): ?string

@@ -16,6 +16,11 @@ use EduLazaro\Laranon\Recognizers\NameRecognizer;
  */
 class PersonNameRecognizer extends NameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'de';
+    }
+
     protected function surnameHonorificPattern(): ?string
     {
         // Herr, Frau, Hr. and Fr., with the academic titles that follow them

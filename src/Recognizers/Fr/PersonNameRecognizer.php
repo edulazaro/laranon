@@ -12,6 +12,11 @@ use EduLazaro\Laranon\Support\Span;
  */
 class PersonNameRecognizer extends NameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'fr';
+    }
+
     /**
      * Name particles, matched in any case.
      */

@@ -406,20 +406,19 @@ class RecognizersTest extends TestCase
         $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
         $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
 
-        foreach ([$es, $en] as $recognizer) {
-            $this->assertSame([], $values($recognizer, 'Esta Sala ha visto el recurso.'));
-            $this->assertSame([], $values($recognizer, 'Ese Tribunal estimó el recurso.'));
-        }
+        // Each recognizer applies the grammar of its own language.
+        $this->assertSame([], $values($es, 'Esta Sala ha visto el recurso.'));
+        $this->assertSame([], $values($es, 'Ese Tribunal estimó el recurso.'));
+        $this->assertSame([], $values($en, 'This Court has seen the appeal.'));
 
         $this->assertSame(['Juan', 'García'], $values($es, 'Si Juan García no comparece.'));
         $this->assertSame(['Juan', 'García'], $values($es, 'Firma Juan García Sobre la base de lo expuesto.'));
         $this->assertSame(['MARÍA', 'LÓPEZ', 'GARCÍA', 'JUAN', 'PÉREZ'], $values($es, 'MARÍA LÓPEZ GARCÍA CONTRA JUAN PÉREZ'));
         $this->assertSame(['JUAN', 'GARCÍA'], $values($es, 'CONDENO A JUAN GARCÍA AL PAGO DE LAS COSTAS.'));
 
-        // Every class, in both languages, not only the words seen so far.
-        foreach ([$es, $en] as $recognizer) {
-            $this->assertSame([], $values($recognizer, 'Per J. K. Rowling. Dicha Sala acuerda. Ambos Cónyuges firman.'));
-        }
+        // Every class, not only the words seen so far.
+        $this->assertSame([], $values($es, 'Dicha Sala acuerda. Ambos Cónyuges firman.'));
+        $this->assertSame([], $values($en, 'Per J. K. Rowling. Both Spouses sign.'));
 
         // A function word that is also a frequent given name is still a name.
         $this->assertSame(['Ella', 'Fitzgerald'], $values($en, 'Ella Fitzgerald sang.'));

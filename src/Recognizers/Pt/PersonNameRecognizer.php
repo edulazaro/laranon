@@ -15,6 +15,11 @@ use EduLazaro\Laranon\Recognizers\Es\PersonNameRecognizer as SpanishPersonNameRe
  */
 class PersonNameRecognizer extends SpanishPersonNameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'pt';
+    }
+
     protected function honorificPattern(): ?string
     {
         // Dom, Dona and D. introduce a given name (Dona Maria, D. João).

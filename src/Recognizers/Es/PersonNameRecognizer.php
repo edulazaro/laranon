@@ -6,6 +6,11 @@ use EduLazaro\Laranon\Recognizers\NameRecognizer;
 
 class PersonNameRecognizer extends NameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'es';
+    }
+
     protected function honorificPattern(): ?string
     {
         // D./D.ª/Dña./Don/Doña introduce a given name (Don Juan, Dña. Luz,

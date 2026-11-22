@@ -223,6 +223,19 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_a_word_of_another_language_is_a_surname_in_a_name(): void
+    {
+        // "Sans" and "Tous" are French words, but only French reads them so.
+        $this->assertSame(
+            'Hola, soy «PER_M_1» «AP_1» «AP_2» y mi móvil es «TEL_1».',
+            Anonymizer::create()->anonymize('Hola, soy Jordi Sans Vidal y mi móvil es 612 345 678.'),
+        );
+        $this->assertSame(
+            'La senyora «PER_F_1» «AP_1» «AP_2» viu a Girona, i el seu telèfon és «TEL_1».',
+            Anonymizer::create()->anonymize('La senyora Montserrat Tous Ferrer viu a Girona, i el seu telèfon és 612 345 678.'),
+        );
+    }
+
     public function test_a_pack_removed_from_the_locales_is_never_used(): void
     {
         $this->app['config']->set('laranon.locales', ['es', 'en']);

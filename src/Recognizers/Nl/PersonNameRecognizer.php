@@ -14,6 +14,11 @@ use EduLazaro\Laranon\Recognizers\Fr\PersonNameRecognizer as FrenchPersonNameRec
  */
 class PersonNameRecognizer extends FrenchPersonNameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'nl';
+    }
+
     protected const CASED_PARTICLES = 'van\s+der|van\s+den|van\s+de|van|de|den|der|ten|ter|te';
 
     protected function surnameHonorificPattern(): ?string

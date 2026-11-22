@@ -731,92 +731,148 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      * Mia, Nao, Nel, Nella, Ni, Nur, Ou, Perche, Prima, Quan, Queste, Sa,
      * Seine, Son, Su, Sue, Tu, Uma, Vos.
      *
+     * Each recognizer applies those of its own language (grammarLanguage()):
+     * "Sans" and "Tous" are French words and Catalan surnames.
+     */
+    protected const FUNCTION_WORDS = [
+        'es' => [
+                // Spanish prepositions and the contraction "al".
+                'ante', 'bajo', 'cabe', 'con', 'contra', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta',
+                'mediante', 'para', 'por', 'segun', 'sin', 'sobre', 'tras', 'versus', 'via', 'al',
+                // Spanish determiners and possessives.
+                'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos',
+                'aquellas', 'esto', 'eso', 'aquello', 'mi', 'mis', 'tus', 'sus', 'nuestro', 'nuestra', 'nuestros',
+                'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras', 'todo', 'todos', 'toda', 'todas', 'cada',
+                'otro', 'otra', 'otros', 'otras', 'mismo', 'misma', 'mismos', 'mismas', 'dicho', 'dicha', 'dichos',
+                'dichas', 'tal', 'tales', 'ambos', 'ambas', 'varios', 'varias', 'alguno', 'alguna', 'algunos',
+                'algunas', 'ninguno', 'ninguna', 'cualquier', 'cualquiera',
+                // Spanish pronouns, relatives and conjunctions.
+                'yo', 'ellos', 'ellas', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'usted', 'ustedes',
+                'que', 'como', 'cuando', 'donde', 'cual', 'cuales', 'quien', 'quienes', 'cuyo', 'cuya', 'cuyos',
+                'cuyas', 'pero', 'sino', 'porque', 'aunque', 'pues', 'mientras', 'no', 'si', 'ya',
+            // The ones shared with a language listed before.
+            'es', 'nos', 'un',
+        ],
+        'ca' => [
+                // Catalan articles, contractions and prepositions.
+                'els', 'uns', 'unes', 'als', 'pel', 'pels', 'amb', 'sense', 'fins', 'cap', 'segons', 'durant',
+                'mitjancant', 'malgrat',
+                // Catalan determiners, possessives, pronouns and conjunctions.
+                'aquest', 'aquesta', 'aquests', 'aquestes', 'aquell', 'aquella', 'aquells', 'aquelles', 'meu',
+                'meva', 'teu', 'teva', 'seu', 'seva', 'nostre', 'nostra', 'vostre', 'vostra', 'llur', 'llurs',
+                'tot', 'tota', 'tots', 'totes', 'altre', 'altra', 'mateix', 'mateixa', 'ell', 'nosaltres',
+                'vosaltres', 'ells', 'voste', 'vostes', 'perque', 'com', 'mentre', 'doncs', 'es', 'era', 'va',
+                'fou',
+            // The ones shared with a language listed before.
+            'al', 'cada', 'contra', 'elles', 'en', 'entre', 'mes', 'no', 'on', 'per', 'pero', 'que', 'seus', 'si', 'sobre', 'un',
+        ],
+        'en' => [
+                // English prepositions.
+                'about', 'above', 'across', 'after', 'against', 'along', 'amid', 'among', 'around', 'as', 'at',
+                'before', 'behind', 'below', 'beneath', 'beside', 'besides', 'between', 'beyond', 'by',
+                'concerning', 'despite', 'down', 'during', 'except', 'for', 'from', 'in', 'inside', 'into',
+                'like', 'near', 'of', 'off', 'on', 'onto', 'out', 'outside', 'over', 'past', 'per', 'regarding',
+                'since', 'than', 'through', 'throughout', 'till', 'to', 'toward', 'towards', 'under',
+                'underneath', 'unlike', 'until', 'up', 'upon', 'with', 'within', 'without',
+                // English determiners, possessives and pronouns.
+                'this', 'that', 'these', 'those', 'all', 'any', 'each', 'every', 'some', 'other', 'another',
+                'such', 'both', 'either', 'neither', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'it',
+                'we', 'you', 'she', 'they', 'them', 'us', 'him',
+                // English conjunctions and relatives, and the forms of be and have.
+                'and', 'or', 'but', 'nor', 'yet', 'if', 'because', 'although', 'though', 'while', 'whereas',
+                'unless', 'whether', 'when', 'where', 'which', 'who', 'whom', 'whose', 'what', 'why', 'how',
+                'is', 'was', 'are', 'were', 'be', 'been', 'has', 'have', 'had',
+            // The ones shared with a language listed before.
+            'no',
+        ],
+        'fr' => [
+                // French contractions and articles that are not name particles.
+                'au', 'aux', 'un', 'une',
+                // French determiners and possessives.
+                'ce', 'cet', 'cette', 'ces', 'mon', 'mes', 'ton', 'ta', 'tes', 'ses', 'notre', 'nos', 'votre',
+                'vos', 'leur', 'leurs', 'tout', 'tous', 'toute', 'toutes', 'chaque', 'aucun', 'aucune', 'autre',
+                'autres', 'meme', 'tel', 'telle', 'tels', 'telles', 'ledit', 'ladite', 'lesdits', 'lesdites',
+                // French pronouns, relatives and conjunctions.
+                'celui', 'celle', 'ceux', 'celles', 'il', 'ils', 'elles', 'nous', 'vous', 'je', 'qui', 'quoi',
+                'dont', 'quand', 'comme', 'et', 'mais', 'donc', 'car',
+                // French prepositions, and the forms of etre and avoir.
+                'pour', 'par', 'sur', 'sous', 'avec', 'sans', 'dans', 'vers', 'chez', 'contre', 'depuis',
+                'pendant', 'selon', 'avant', 'apres', 'malgre', 'parmi',
+                'est', 'sont', 'etait', 'ont', 'avait',
+            // The ones shared with a language listed before.
+            'en', 'entre', 'on', 'que', 'si',
+        ],
+        'it' => [
+                // Italian articles and contractions that are not name particles.
+                'il', 'gli', 'uno', 'agli', 'nello', 'nei', 'negli', 'nelle', 'sul', 'sullo', 'sulla', 'sui',
+                'sugli', 'sulle',
+                // Italian prepositions, determiners, pronouns and conjunctions.
+                'tra', 'fra', 'presso', 'secondo', 'contro', 'senza', 'sopra', 'sotto', 'verso', 'circa', 'dopo',
+                'che', 'chi', 'non', 'quando', 'dove', 'questo', 'questa', 'questi', 'quello', 'quella', 'quelli',
+                'quelle', 'suo', 'sua', 'suoi', 'mio', 'miei', 'mie', 'tuo', 'tua', 'nostro', 'vostro', 'loro',
+                'lui', 'egli', 'essi', 'esse', 'noi', 'voi', 'io', 'ogni', 'tutto', 'tutti', 'tutta', 'tutte',
+                'altro', 'altri', 'altre', 'stesso', 'stessa', 'detto', 'detta', 'suddetto',
+                // Italian forms of essere and avere.
+                'sono', 'hanno', 'essere', 'stato', 'stata',
+            // The ones shared with a language listed before.
+            'al', 'alle', 'altra', 'con', 'era', 'in', 'per', 'un',
+        ],
+        'de' => [
+                // German articles, prepositions, pronouns and conjunctions (nouns are
+                // capitalized in German, so these matter at every sentence start).
+                'die', 'das', 'dem', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines', 'und', 'oder', 'aber',
+                'mit', 'auf', 'aus', 'bei', 'nach', 'uber', 'unter', 'vor', 'durch', 'gegen', 'ohne', 'um', 'wie',
+                'wenn', 'dass', 'nicht', 'auch', 'sich', 'er', 'sie', 'wir', 'ihr', 'ich', 'ihnen', 'sein', 'ihre',
+                'dieser', 'diese', 'dieses', 'jeder', 'alle', 'noch', 'hier', 'dort', 'zum', 'im', 'am', 'beim',
+                'ist', 'sind', 'war', 'hat', 'haben', 'wird', 'werden',
+            // The ones shared with a language listed before.
+            'als', 'es', 'in',
+        ],
+        'nl' => [
+                // Dutch articles, prepositions, pronouns and conjunctions.
+                'het', 'een', 'maar', 'met', 'voor', 'aan', 'uit', 'bij', 'naar', 'over', 'onder', 'door', 'tegen',
+                'zonder', 'om', 'dat', 'dit', 'deze', 'hij', 'zij', 'ze', 'wij', 'jij', 'je', 'ik', 'haar', 'hun',
+                'ons', 'onze', 'mijn', 'uw', 'geen', 'elk', 'ieder', 'wie', 'wat', 'waar', 'wanneer', 'omdat',
+                'want', 'dus', 'nog', 'er', 'daar', 'zo', 'zijn', 'heeft', 'hebben', 'wordt', 'worden', 'niet', 'ook',
+                'zich',
+            // The ones shared with a language listed before.
+            'al', 'alle', 'als', 'die', 'en', 'hier', 'in', 'is', 'of', 'was', 'we',
+        ],
+        'pt' => [
+                // Portuguese articles, contractions, prepositions, pronouns and conjunctions.
+                'os', 'as', 'um', 'uns', 'umas', 'em', 'na', 'nos', 'nas', 'ao', 'aos', 'pelo', 'pela', 'pelos',
+                'pelas', 'com', 'sem', 'sob', 'ate', 'desde', 'onde', 'esse', 'essa', 'isso', 'isto',
+                'aquele', 'aquela', 'seus', 'suas', 'minha', 'nosso', 'nossa', 'ele', 'eles', 'elas', 'voce',
+                'voces', 'eu', 'foi', 'tem', 'todo', 'mesma', 'dito', 'dita',
+            // The ones shared with a language listed before.
+            'cada', 'como', 'contra', 'entre', 'era', 'esta', 'estas', 'este', 'meu', 'no', 'para', 'por', 'porque',
+            'quando', 'que', 'seu', 'sobre', 'sua', 'toda', 'todas', 'todos',
+        ],
+    ];
+
+    /**
+     * The function words of the recognizer's language.
+     *
      * @return array<int, string>
      */
     protected function functionWords(): array
     {
-        return [
-            // Spanish prepositions and the contraction "al".
-            'ante', 'bajo', 'cabe', 'con', 'contra', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta',
-            'mediante', 'para', 'por', 'segun', 'sin', 'sobre', 'tras', 'versus', 'via', 'al',
-            // Spanish determiners and possessives.
-            'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos',
-            'aquellas', 'esto', 'eso', 'aquello', 'mi', 'mis', 'tus', 'sus', 'nuestro', 'nuestra', 'nuestros',
-            'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras', 'todo', 'todos', 'toda', 'todas', 'cada',
-            'otro', 'otra', 'otros', 'otras', 'mismo', 'misma', 'mismos', 'mismas', 'dicho', 'dicha', 'dichos',
-            'dichas', 'tal', 'tales', 'ambos', 'ambas', 'varios', 'varias', 'alguno', 'alguna', 'algunos',
-            'algunas', 'ninguno', 'ninguna', 'cualquier', 'cualquiera',
-            // Spanish pronouns, relatives and conjunctions.
-            'yo', 'ellos', 'ellas', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'usted', 'ustedes',
-            'que', 'como', 'cuando', 'donde', 'cual', 'cuales', 'quien', 'quienes', 'cuyo', 'cuya', 'cuyos',
-            'cuyas', 'pero', 'sino', 'porque', 'aunque', 'pues', 'mientras', 'no', 'si', 'ya',
-            // Catalan articles, contractions and prepositions.
-            'els', 'uns', 'unes', 'als', 'pel', 'pels', 'amb', 'sense', 'fins', 'cap', 'segons', 'durant',
-            'mitjancant', 'malgrat',
-            // Catalan determiners, possessives, pronouns and conjunctions.
-            'aquest', 'aquesta', 'aquests', 'aquestes', 'aquell', 'aquella', 'aquells', 'aquelles', 'meu',
-            'meva', 'teu', 'teva', 'seu', 'seva', 'nostre', 'nostra', 'vostre', 'vostra', 'llur', 'llurs',
-            'tot', 'tota', 'tots', 'totes', 'altre', 'altra', 'mateix', 'mateixa', 'ell', 'nosaltres',
-            'vosaltres', 'ells', 'voste', 'vostes', 'perque', 'com', 'mentre', 'doncs', 'es', 'era', 'va',
-            'fou',
-            // English prepositions.
-            'about', 'above', 'across', 'after', 'against', 'along', 'amid', 'among', 'around', 'as', 'at',
-            'before', 'behind', 'below', 'beneath', 'beside', 'besides', 'between', 'beyond', 'by',
-            'concerning', 'despite', 'down', 'during', 'except', 'for', 'from', 'in', 'inside', 'into',
-            'like', 'near', 'of', 'off', 'on', 'onto', 'out', 'outside', 'over', 'past', 'per', 'regarding',
-            'since', 'than', 'through', 'throughout', 'till', 'to', 'toward', 'towards', 'under',
-            'underneath', 'unlike', 'until', 'up', 'upon', 'with', 'within', 'without',
-            // English determiners, possessives and pronouns.
-            'this', 'that', 'these', 'those', 'all', 'any', 'each', 'every', 'some', 'other', 'another',
-            'such', 'both', 'either', 'neither', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'it',
-            'we', 'you', 'she', 'they', 'them', 'us', 'him',
-            // English conjunctions and relatives, and the forms of be and have.
-            'and', 'or', 'but', 'nor', 'yet', 'if', 'because', 'although', 'though', 'while', 'whereas',
-            'unless', 'whether', 'when', 'where', 'which', 'who', 'whom', 'whose', 'what', 'why', 'how',
-            'is', 'was', 'are', 'were', 'be', 'been', 'has', 'have', 'had',
-            // French contractions and articles that are not name particles.
-            'au', 'aux', 'un', 'une',
-            // French determiners and possessives.
-            'ce', 'cet', 'cette', 'ces', 'mon', 'mes', 'ton', 'ta', 'tes', 'ses', 'notre', 'nos', 'votre',
-            'vos', 'leur', 'leurs', 'tout', 'tous', 'toute', 'toutes', 'chaque', 'aucun', 'aucune', 'autre',
-            'autres', 'meme', 'tel', 'telle', 'tels', 'telles', 'ledit', 'ladite', 'lesdits', 'lesdites',
-            // French pronouns, relatives and conjunctions.
-            'celui', 'celle', 'ceux', 'celles', 'il', 'ils', 'elles', 'nous', 'vous', 'je', 'qui', 'quoi',
-            'dont', 'quand', 'comme', 'et', 'mais', 'donc', 'car',
-            // French prepositions, and the forms of etre and avoir.
-            'pour', 'par', 'sur', 'sous', 'avec', 'sans', 'dans', 'vers', 'chez', 'contre', 'depuis',
-            'pendant', 'selon', 'avant', 'apres', 'malgre', 'parmi',
-            'est', 'sont', 'etait', 'ont', 'avait',
-            // Italian articles and contractions that are not name particles.
-            'il', 'gli', 'uno', 'agli', 'nello', 'nei', 'negli', 'nelle', 'sul', 'sullo', 'sulla', 'sui',
-            'sugli', 'sulle',
-            // Italian prepositions, determiners, pronouns and conjunctions.
-            'tra', 'fra', 'presso', 'secondo', 'contro', 'senza', 'sopra', 'sotto', 'verso', 'circa', 'dopo',
-            'che', 'chi', 'non', 'quando', 'dove', 'questo', 'questa', 'questi', 'quello', 'quella', 'quelli',
-            'quelle', 'suo', 'sua', 'suoi', 'mio', 'miei', 'mie', 'tuo', 'tua', 'nostro', 'vostro', 'loro',
-            'lui', 'egli', 'essi', 'esse', 'noi', 'voi', 'io', 'ogni', 'tutto', 'tutti', 'tutta', 'tutte',
-            'altro', 'altri', 'altre', 'stesso', 'stessa', 'detto', 'detta', 'suddetto',
-            // Italian forms of essere and avere.
-            'sono', 'hanno', 'essere', 'stato', 'stata',
-            // German articles, prepositions, pronouns and conjunctions (nouns are
-            // capitalized in German, so these matter at every sentence start).
-            'die', 'das', 'dem', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines', 'und', 'oder', 'aber',
-            'mit', 'auf', 'aus', 'bei', 'nach', 'uber', 'unter', 'vor', 'durch', 'gegen', 'ohne', 'um', 'wie',
-            'wenn', 'dass', 'nicht', 'auch', 'sich', 'er', 'sie', 'wir', 'ihr', 'ich', 'ihnen', 'sein', 'ihre',
-            'dieser', 'diese', 'dieses', 'jeder', 'alle', 'noch', 'hier', 'dort', 'zum', 'im', 'am', 'beim',
-            'ist', 'sind', 'war', 'hat', 'haben', 'wird', 'werden',
-            // Dutch articles, prepositions, pronouns and conjunctions.
-            'het', 'een', 'maar', 'met', 'voor', 'aan', 'uit', 'bij', 'naar', 'over', 'onder', 'door', 'tegen',
-            'zonder', 'om', 'dat', 'dit', 'deze', 'hij', 'zij', 'ze', 'wij', 'jij', 'je', 'ik', 'haar', 'hun',
-            'ons', 'onze', 'mijn', 'uw', 'geen', 'elk', 'ieder', 'wie', 'wat', 'waar', 'wanneer', 'omdat',
-            'want', 'dus', 'nog', 'er', 'daar', 'zo', 'zijn', 'heeft', 'hebben', 'wordt', 'worden', 'niet', 'ook',
-            'zich',
-            // Portuguese articles, contractions, prepositions, pronouns and conjunctions.
-            'os', 'as', 'um', 'uns', 'umas', 'em', 'na', 'nos', 'nas', 'ao', 'aos', 'pelo', 'pela', 'pelos',
-            'pelas', 'com', 'sem', 'sob', 'ate', 'desde', 'onde', 'esse', 'essa', 'isso', 'isto',
-            'aquele', 'aquela', 'seus', 'suas', 'minha', 'nosso', 'nossa', 'ele', 'eles', 'elas', 'voce',
-            'voces', 'eu', 'foi', 'tem', 'todo', 'mesma', 'dito', 'dita',
-        ];
+        $language = $this->grammarLanguage();
+
+        return $language === null
+            ? array_merge(...array_values(self::FUNCTION_WORDS))
+            : self::FUNCTION_WORDS[$language] ?? [];
+    }
+
+    /**
+     * The language whose grammar this recognizer applies (its function
+     * words): the language detection picks the recognizers of the text's
+     * languages for their grammar, and the names come from every language.
+     * Null applies the grammar of every language.
+     */
+    protected function grammarLanguage(): ?string
+    {
+        return null;
     }
 
     /**

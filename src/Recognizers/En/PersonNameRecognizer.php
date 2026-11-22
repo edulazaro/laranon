@@ -6,6 +6,11 @@ use EduLazaro\Laranon\Recognizers\NameRecognizer;
 
 class PersonNameRecognizer extends NameRecognizer
 {
+    protected function grammarLanguage(): ?string
+    {
+        return 'en';
+    }
+
     /**
      * The particles of English-language names (van Gogh, da Vinci, bin
      * Salman), without the Spanish ones (de, del, de la, la, lo): the Spanish
