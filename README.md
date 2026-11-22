@@ -270,7 +270,7 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | --- | --- | --- |
 | `data/es/names.php` | ~22,000 | INE, annual census at 1 January 2025, frequency >= 20, plus the names of the 2012 list (via [marcboquet/spanish-names](https://github.com/marcboquet/spanish-names)) that have since dropped under 20 bearers; a rare new name that is also a surname (Sala, Valencia) is left out |
 | `data/es/surnames.php` | ~24,300 | INE, national census, frequency >= 20 |
-| `data/es/names_ambiguous.php` | 34 | hand-curated (Marian and virtue names) |
+| `data/es/names_ambiguous.php` | 35 | hand-curated (Marian and virtue names) |
 | `data/es/names_common.php` | ~8,000 | INE, 2025: given names borne as the first given name by 100 people or more. A name in capitals must open with one, so "REY DE ESPAÑA" is not a person |
 | `data/es/names_gender.php` | ~20,900 | INE (2025, 2012 for older names), by first given name: `f` or `m` when 95% or more of the people bearing it share it; ambiguous names left out |
 | `data/en/names.php` | ~7,300 | US SSA baby name applications, aggregate occurrences >= 100 (via [hackerb9/ssa-baby-names](https://github.com/hackerb9/ssa-baby-names)) |

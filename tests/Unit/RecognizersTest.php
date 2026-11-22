@@ -243,9 +243,24 @@ class RecognizersTest extends TestCase
             'Vive en SAN SEBASTIÁN, o en San Sebastián.',
             'SANTA CRUZ DE TENERIFE',
             "FELIPE VI\n\nREY DE ESPAÑA",
+            'Contra MERCEDES-BENZ ESPAÑA.',
+            'CRUZ ROJA ESPAÑOLA',
+            'RECURSO DE AMPARO AVOCADO AL PLENO',
         ] as $text) {
             $this->assertSame([], $recognizer->detect($text), $text);
         }
+    }
+
+    public function test_a_brand_or_an_ambiguous_name_needs_more_to_be_a_person(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame([], $values('Contra Mercedes-Benz España.'));
+        $this->assertSame(['María-José', 'Pérez'], $values('Comparece María-José Pérez.'));
+        $this->assertSame(['MERCEDES', 'RUIZ', 'GÓMEZ'], $values('Comparece MERCEDES RUIZ GÓMEZ.'));
+        $this->assertSame(['CRUZ', 'MARTÍN', 'LÓPEZ'], $values('Comparece CRUZ MARTÍN LÓPEZ.'));
+        $this->assertSame(['AMPARO', 'GARCÍA'], $values('DOÑA AMPARO GARCÍA comparece.'));
     }
 
     public function test_the_d_of_sr_d_is_not_a_surname(): void

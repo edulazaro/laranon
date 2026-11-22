@@ -333,6 +333,18 @@ abstract class NameRecognizer implements Recognizer
             return [];
         }
 
+        // An ambiguous given name in capitals ("AMPARO", "CRUZ", "MERCEDES")
+        // opens a heading or a company ("CRUZ ROJA") far more often than a
+        // name with a single surname: it needs two.
+        $surnames = array_filter(
+            array_slice($tokens, $start + 1, $end - $start),
+            fn (array $token) => $this->isSurname($token[0]),
+        );
+
+        if (isset($this->ambiguousNames()[$this->parts($tokens[$start][0])[0]]) && count($surnames) < 2) {
+            return [];
+        }
+
         $relativeStart = $tokens[$start][1];
         $relativeEnd = $tokens[$end][1] + strlen($tokens[$end][0]);
         $trimmed = substr($value, $relativeStart, $relativeEnd - $relativeStart);
@@ -703,11 +715,23 @@ abstract class NameRecognizer implements Recognizer
     /**
      * Whether a word can open a name: a known given name written with a
      * capital. A lowercase particle never does, even when the census lists
-     * it as a given name ("von" in "Wernher von Braun").
+     * it as a given name ("von" in "Wernher von Braun"). A hyphenated one
+     * needs a given name in every part (Jean-Pierre, María-José), so a brand
+     * that starts with one ("Mercedes-Benz") does not.
      */
     protected function opensName(string $word): bool
     {
-        return preg_match('/^\p{Lu}/u', $word) === 1 && isset($this->firstNames()[$this->parts($word)[0]]);
+        if (preg_match('/^\p{Lu}/u', $word) !== 1) {
+            return false;
+        }
+
+        foreach ($this->parts($word) as $part) {
+            if (! isset($this->firstNames()[$part])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

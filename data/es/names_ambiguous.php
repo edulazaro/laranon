@@ -14,5 +14,5 @@ return [
     'estrella', 'amparo', 'soledad', 'concepcion', 'asuncion', 'dolores',
     'angeles', 'encarnacion', 'gracia', 'fe', 'flor', 'aurora', 'perla',
     'iris', 'nieves', 'rocio', 'inmaculada', 'natividad', 'purificacion',
-    'angel',
+    'angel', 'cruz',
 ];
