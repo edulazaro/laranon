@@ -55,6 +55,18 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $recognizer->detect('El NIF es 12345678Z.'));
     }
 
+    public function test_provincial_plates_need_a_word_that_introduces_them(): void
+    {
+        $recognizer = new \EduLazaro\Laranon\Recognizers\Es\PlateRecognizer();
+
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, $recognizer->detect($text));
+
+        $this->assertSame(['M-1234-AB'], $values('El coche con matrícula M-1234-AB.'));
+        $this->assertSame(['B 1234 CD'], $values('Vehículo: B 1234 CD, retirado.'));
+        $this->assertSame([], $values('Referencia interna M-1234-AB.'));
+        $this->assertSame([], $values('Con matrícula M-1234 AB.'));
+    }
+
     public function test_email_recognizer(): void
     {
         $spans = (new EmailRecognizer())->detect('Escribe a maria.garcia@despacho.legal cuando puedas.');
