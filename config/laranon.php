@@ -22,15 +22,16 @@ return [
     | Locale packs
     |--------------------------------------------------------------------------
     |
-    | Active locales and the pack class implementing each one. A pack returns
+    | The locale packs and the class implementing each one. A pack returns
     | the locale-specific recognizers (national ids, phones, person names...).
-    | Universal recognizers below run regardless of locale. Add 'ca' or 'fr'
-    | for Catalan or French person names: every active pack runs on every
-    | text.
+    | All of them are available: each text is read with the packs of the
+    | languages it is written in, detected per paragraph (see the README), or
+    | with all of them when its language cannot be told. Remove a locale only
+    | to never use that pack. Universal recognizers below run on every text.
     |
     */
 
-    'locales' => ['es', 'en'],
+    'locales' => ['es', 'en', 'fr', 'ca'],
 
     'packs' => [
         'es' => EsPack::class,

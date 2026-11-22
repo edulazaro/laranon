@@ -211,6 +211,20 @@ Laranon::only(['dni', 'iban'])->anonymize($text);
 Laranon::except('url')->anonymize($text);
 ```
 
+### Languages
+
+Every pack (`es`, `en`, `fr`, `ca`) is available, and each text is read with the ones of the languages it is written in. Identifiers with a checksum or an unmistakable shape (DNI, NIE, CIF, IBAN, cards, emails, phones with a country prefix) are found in every text, since a DNI can appear in an English contract. What depends on the language is the rest: person names, with their particles, honorifics and grammar, and the values with no checksum that look like ordinary numbers elsewhere (phones with no prefix, postal codes, plates, SSN).
+
+The language is told per paragraph, so a Spanish document with a passage pasted in English is read in both. A paragraph long enough is told by its letter n-grams (see [Language detection](#language-detection)); a short one, by its grammatical words ("Llamar al 612345678" has the "al" of Spanish and Catalan, and both read Spanish phones). With nothing to go by, such as digits alone, the language last told clearly in the scope or the session is used, if any. And when none of that gives a language, or the text is clearly in a language with no pack, every pack reads it, so a name is never lost to a wrong guess. A session (`Anonymizer::create()`) tells it once for all the strings it is given, so a short message is read in the conversation's language.
+
+When you already know the language, set it:
+
+```php
+Laranon::language('fr')->anonymize($text);
+```
+
+Remove a locale from `locales` in the config only to never use that pack.
+
 ### Streaming (SSE)
 
 ```php
@@ -257,8 +271,8 @@ Prints every span the anonymizer would replace (type, value, offset, confidence)
 | Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), international phones (+cc / 00cc, any grouping), IPv4/v6, URLs, BIC/SWIFT (after the word BIC or SWIFT), known entities |
 | Spanish (`es`) | DNI, NIE, NIF K/L/M (typed `dni`), CIF, NIF-IVA (`ES` + DNI, NIE or CIF), NSS, CCC, bare phones (6xx/7xx mobiles, 9xx landlines, with or without separators), postal codes (context-gated), plates, court refs (NIG, "autos 123/2023", "expediente número 456/2023"), person names |
 | English (`en`) | SSN, UK NINO, passports (context-gated), US/UK phones, ZIP codes, person names |
-| Catalan (`ca`, off by default) | person names with the Spanish rules and the INE data (which covers Catalonia), "i" between surnames ("Pujol i Soley"), Catalan names that are words (Llum, Neus, Roser, Pau) |
-| French (`fr`, off by default) | person names: "Jean DUPONT" and "DUPONT Jean", particles in any case ("de Gaulle", "Le Pen"), M./Mme/Mlle/Me/Dr/Pr. No French identifiers yet (NIR, SIREN, SIRET) |
+| Catalan (`ca`) | person names with the Spanish rules and the INE data (which covers Catalonia), "i" between surnames ("Pujol i Soley"), Catalan names that are words (Llum, Neus, Roser, Pau) |
+| French (`fr`) | person names: "Jean DUPONT" and "DUPONT Jean", particles in any case ("de Gaulle", "Le Pen"), M./Mme/Mlle/Me/Dr/Pr. No French identifiers yet (NIR, SIREN, SIRET) |
 
 Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gated on purpose: precision first.
 
@@ -306,7 +320,7 @@ It is based on [patrickschur/language-detection](https://github.com/patrickschur
 
 `config/laranon.php` controls:
 
-- `locales` and `packs`: which locale packs run (`es` and `en` by default; `ca` and `fr` are bundled and run once you add them to `locales`; add your own). Every active pack reads every text, so add only the languages your texts are in.
+- `locales` and `packs`: the locale packs available (`es`, `en`, `fr` and `ca`; add your own). Each text is read with the packs of its languages (see [Languages](#languages)).
 - `universal`: recognizers that run regardless of locale.
 - `strategy` and `strategies`: the default replacement strategy and the registered ones.
 - `token_format` and `labels`: `«%s_%d»` with labels like `person => PER`, `surname => AP`, `dni => DNI`.

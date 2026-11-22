@@ -159,32 +159,38 @@ class AnonymizerTest extends TestCase
 
         $this->assertSame('es', $session->map()->language());
         $this->assertSame(['es'], $this->anonymizer()->languagesFor('612345678', $session->map()));
-        $this->assertSame(['es', 'en'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
     }
 
     public function test_a_text_in_a_language_with_no_pack_is_read_in_all(): void
     {
         $german = 'Der Beklagte hat die Forderung bestritten und beantragt, die Klage abzuweisen, da der Vertrag nicht wirksam zustande gekommen sei.';
 
-        $this->assertSame(['es', 'en'], $this->anonymizer()->languagesFor($german, new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca'], $this->anonymizer()->languagesFor($german, new TokenMap()));
     }
 
-    public function test_the_french_pack_is_off_until_its_locale_is_added(): void
+    public function test_a_french_text_is_read_with_the_french_pack(): void
     {
-        $text = 'DUPONT Jean signe. Le Tribunal judiciaire de Lyon.';
+        $text = "DUPONT Jean signe le contrat avec la société défenderesse. Le Tribunal judiciaire de Lyon l'a confirmé.";
+
+        $this->assertSame(['fr'], $this->anonymizer()->languagesFor($text, new TokenMap()));
+        $this->assertSame(
+            "«AP_1» «PER_M_1» signe le contrat avec la société défenderesse. Le Tribunal judiciaire de Lyon l'a confirmé.",
+            $this->anonymizer()->anonymize($text)->text,
+        );
+    }
+
+    public function test_a_pack_removed_from_the_locales_is_never_used(): void
+    {
+        $this->app['config']->set('laranon.locales', ['es', 'en']);
+
+        $text = "DUPONT Jean signe le contrat avec la société défenderesse. Le Tribunal judiciaire de Lyon l'a confirmé.";
 
         $this->assertSame($text, $this->anonymizer()->anonymize($text)->text);
-
-        $this->app->forgetInstance(Anonymizer::class);
-        $this->app['config']->set('laranon.locales', ['es', 'en', 'fr']);
-
-        $this->assertSame('«AP_1» «PER_M_1» signe. Le Tribunal judiciaire de Lyon.', $this->anonymizer()->anonymize($text)->text);
     }
 
-    public function test_the_catalan_pack_is_off_until_its_locale_is_added(): void
+    public function test_a_catalan_text_is_read_with_the_catalan_pack(): void
     {
-        $this->app['config']->set('laranon.locales', ['es', 'en', 'ca']);
-
         $this->assertSame(
             'Signa «PER_F_1» «AP_1». Per tot això, la llum de la tarda.',
             $this->anonymizer()->anonymize('Signa Llum Vidal. Per tot això, la llum de la tarda.')->text,

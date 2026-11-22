@@ -13,10 +13,12 @@ use stdClass;
 final class JsonScrubber
 {
     /**
-     * Between two values in the single text $anonymize sees: a line of its
-     * own, so no name or number runs from one value into the next.
+     * Between two values in the single text $anonymize sees: a paragraph of
+     * its own, so no name or number runs from one value into the next, and
+     * each value's language is told apart ("phone" is a key in English, the
+     * 612345678 next to it a Spanish mobile).
      */
-    private const SEPARATOR = "\n\x1E\n";
+    private const SEPARATOR = "\n\n\x1E\n\n";
 
     /**
      * Stands in for an integer too large for PHP, which would turn into a
