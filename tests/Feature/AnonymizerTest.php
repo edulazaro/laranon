@@ -117,6 +117,15 @@ class AnonymizerTest extends TestCase
         $this->assertSame("PARTE: ACME HEALTH\nContra Acme Health se dirige la acción.", $result->restore($result->text));
     }
 
+    public function test_a_known_entity_of_a_built_in_type_keeps_that_type_grouping(): void
+    {
+        $result = $this->anonymizer()
+            ->withEntities([['value' => '12345678Z', 'type' => 'dni']])
+            ->anonymize('DNI 12345678Z y también 12345678-Z.');
+
+        $this->assertSame('DNI «DNI_1» y también «DNI_1».', $result->text);
+    }
+
     public function test_variants_false_keeps_each_written_form_apart(): void
     {
         $result = $this->anonymizer()

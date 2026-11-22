@@ -68,15 +68,18 @@ final class TokenMap
     /**
      * Group the written forms of these types like names ("Acme Health" and
      * "ACME HEALTH" share a token and restore by context). For the types an
-     * application gives its known entities (withEntities()); the built-in
-     * name types are always grouped this way. Values already in the map are
-     * regrouped.
+     * application gives its known entities (withEntities()). A type with a
+     * rule of its own (a name, a DNI, a phone...) keeps that rule. Values
+     * already in the map are regrouped.
      *
      * @param array<int, string> $types
      */
     public function groupLikeNames(array $types): void
     {
-        $new = array_diff($types, array_keys($this->nameTypes), ValueKey::NAME_TYPES);
+        $new = array_filter(
+            array_diff($types, array_keys($this->nameTypes)),
+            fn (string $type) => ! ValueKey::hasOwnRule($type),
+        );
 
         if ($new === []) {
             return;

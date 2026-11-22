@@ -80,6 +80,15 @@ final class ValueKey
     }
 
     /**
+     * Whether the type has a grouping rule of its own here (names,
+     * identifiers, phones, emails). An application's own types do not.
+     */
+    public static function hasOwnRule(string $type): bool
+    {
+        return self::isName($type) || in_array($type, self::IDENTIFIER_TYPES, true) || $type === 'phone' || $type === 'email';
+    }
+
+    /**
      * The key of a value grouped like a name: without case or accents, ñ and
      * ç kept.
      */
