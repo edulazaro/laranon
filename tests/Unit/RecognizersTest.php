@@ -593,6 +593,29 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Rosa', 'Martínez'], $values($es, 'Firma Rosa Martínez.'));
     }
 
+    public function test_the_ordinal_of_m_is_not_an_article(): void
+    {
+        // The "ª" of "M.ª" is a letter that folds to "a": "Ángeles" is still
+        // a name after it, not the word after an article.
+        $es = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($es->detect($text)));
+
+        $this->assertSame(['Ángeles', 'Parra', 'Lucán'], $values("Excmas. Sras. y Excmos. Sres.\nD.ª M.ª Ángeles Parra Lucán"));
+    }
+
+    public function test_english_names_in_capitals(): void
+    {
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($en->detect($text)));
+
+        $this->assertSame(['JOHN', 'DOE', 'RICHARD', 'ROE'], $values('JOHN DOE v. RICHARD ROE'));
+        $this->assertSame(['JANE', 'ELIZABETH', 'DOE'], $values('The plaintiff, JANE ELIZABETH DOE, filed a complaint.'));
+
+        // Only a frequent given name opens one: the census lists rare ones that are words.
+        $this->assertSame([], $values('GENERAL MOTORS COMPANY'));
+        $this->assertSame([], $values('UNITED STATES DISTRICT COURT FOR THE SOUTHERN DISTRICT OF NEW YORK'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

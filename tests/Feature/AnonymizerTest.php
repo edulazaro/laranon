@@ -256,6 +256,39 @@ class AnonymizerTest extends TestCase
         $this->assertSame(['es'], $this->anonymizer()->languagesFor($document, new TokenMap()));
     }
 
+    public function test_a_text_of_unclear_language_is_read_with_the_function_words_of_all(): void
+    {
+        // In capitals, and with "no" or "de" as the only lowercase words, the
+        // language cannot be told: "AL", "PARA" and "Per" are function words
+        // of one of its languages, not names.
+        $this->assertSame(
+            'CONDENO A «PER_M_1» «AP_1» AL PAGO DE LAS COSTAS. Al no constar oposición. Al respecto.',
+            Anonymizer::create()->anonymize('CONDENO A JUAN GARCÍA AL PAGO DE LAS COSTAS. Al no constar oposición. Al respecto.'),
+        );
+        $this->assertSame(
+            'SE REQUIERE A «PER_F_1» «AP_1» PARA QUE ABONE. Para ello dispone de diez días.',
+            Anonymizer::create()->anonymize('SE REQUIERE A MARÍA LÓPEZ PARA QUE ABONE. Para ello dispone de diez días.'),
+        );
+        $this->assertSame('Per J. K. Rowling.', Anonymizer::create()->anonymize('Per J. K. Rowling.'));
+
+        // Between a given name and a surname, one is a surname.
+        $this->assertSame('«PER_M_1» «AP_1» «AP_2»', Anonymizer::create()->anonymize('Jordi Sans Vidal'));
+    }
+
+    public function test_the_judges_of_a_cendoj_heading(): void
+    {
+        $heading = "Sentencia núm. 1313/2026\nExcmas. Sras. y Excmos. Sres.\nD.ª M.ª Ángeles Parra Lucán\nD. Antonio García Martínez";
+        $body = 'En Madrid, a 3 de octubre de 2026. Esta sala ha visto el recurso de casación interpuesto contra la sentencia dictada en grado '
+            . 'de apelación por la Audiencia Provincial, que estimó el recurso de la parte demandada y revocó la de primera instancia, con '
+            . 'imposición de las costas a la parte actora, al no haberse acreditado la existencia del contrato.';
+
+        $text = (string) Anonymizer::create()->anonymize("{$heading}\n\n{$body}");
+
+        $this->assertStringNotContainsString('Parra', $text);
+        $this->assertStringNotContainsString('Lucán', $text);
+        $this->assertStringNotContainsString('Martínez', $text);
+    }
+
     public function test_a_pack_removed_from_the_locales_is_never_used(): void
     {
         $this->app['config']->set('laranon.locales', ['es', 'en']);

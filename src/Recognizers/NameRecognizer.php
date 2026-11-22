@@ -99,6 +99,9 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     /** @var array<string, array<int, array<string, mixed>>> file => the lists of the other languages */
     protected array $foreignLists = [];
 
+    /** @var array<string, true> the function words of the other languages the text may be in */
+    protected array $otherFunctionWords = [];
+
     public function __construct(protected ?string $dataPath = null)
     {
     }
@@ -436,7 +439,9 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     {
         $before = mb_strcut($this->text, max(0, $offset - 12), min($offset, 12));
 
-        return preg_match('/(?<!\p{L})(\p{L}+)\h+$/u', $before, $match) === 1 && in_array($this->fold($match[1]), [
+        // Compared as written, not folded: the "ª" of "M.ª" is a letter that
+        // folds to "a".
+        return preg_match('/(?<!\p{L})(\p{L}+)\h+$/u', $before, $match) === 1 && in_array(mb_strtolower($match[1]), [
             'el', 'la', 'los', 'las', 'lo', 'un', 'una', 'els', 'les', 'the', 'a', 'an', 'le', 'il', 'gli', 'i',
             'o', 'os', 'as', 'um', 'uma', 'der', 'die', 'das', 'den', 'dem', 'het', 'een',
         ], true);
@@ -483,7 +488,11 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
             $next = $matches[0][$i + 1][0] ?? null;
             $joinsSurnames = $i >= ($surnamesFirst ? 1 : 2) && $next !== null && $this->isSurname($next) && ! $this->opensName($next);
 
-            if (isset($functionWords[$this->fold($word)]) || (in_array($word, ['y', 'e', 'i'], true) && ! $joinsSurnames)) {
+            $folded = $this->fold($word);
+            $otherLanguages = isset($this->otherFunctionWords[$folded])
+                && ! ($next !== null && $this->opensName($matches[0][$i - 1][0]) && $this->isSurname($next));
+
+            if (isset($functionWords[$folded]) || $otherLanguages || (in_array($word, ['y', 'e', 'i'], true) && ! $joinsSurnames)) {
                 return $matches[0][$i - 1][1] + strlen($matches[0][$i - 1][0]);
             }
         }
@@ -868,6 +877,30 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     }
 
     /**
+     * Reads the next texts as possibly written in any of $languages too, as
+     * when their language cannot be told: the function words of those
+     * languages end a name and never open one ("Per J. K. Rowling", "JUAN
+     * GARCÍA AL PAGO"), except right after a given name and before a
+     * surname, where one is a surname ("Jordi Sans Vidal"). An empty list
+     * reads them in this recognizer's language alone again.
+     *
+     * @param array<int, string> $languages
+     */
+    public function readAlsoIn(array $languages): void
+    {
+        $own = $this->grammarLanguage();
+        $words = [];
+
+        foreach ($own === null ? [] : $languages as $language) {
+            if ($language !== $own) {
+                array_push($words, ...(self::FUNCTION_WORDS[$language] ?? []));
+            }
+        }
+
+        $this->otherFunctionWords = array_fill_keys($words, true);
+    }
+
+    /**
      * The language whose grammar this recognizer applies (its function
      * words): the language detection picks the recognizers of the text's
      * languages for their grammar, and the names come from every language.
@@ -917,7 +950,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      */
     protected function opensName(string $word): bool
     {
-        if (preg_match('/^\p{Lu}/u', $word) !== 1) {
+        if (preg_match('/^\p{Lu}/u', $word) !== 1 || isset($this->otherFunctionWords[$this->fold($word)])) {
             return false;
         }
 

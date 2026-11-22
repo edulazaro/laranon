@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon;
 
 use EduLazaro\Laranon\Contracts\Strategy;
 use EduLazaro\Laranon\Contracts\VaultStore;
+use EduLazaro\Laranon\Recognizers\NameRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\KnownEntitiesRecognizer;
 use EduLazaro\Laranon\Streaming\StreamDeanonymizer;
 use EduLazaro\Laranon\Support\AnonymizedText;
@@ -366,12 +367,28 @@ class Anonymizer
         $spans = [];
         $recognizers = array_merge($this->recognizers, $this->extraRecognizers);
 
-        foreach ($languages ?? $this->languagesFor($text, $map) as $language) {
+        $languages ??= $this->languagesFor($text, $map);
+
+        foreach ($languages as $language) {
             array_push($recognizers, ...($this->languageRecognizers[$language] ?? []));
         }
 
         foreach ($recognizers as $recognizer) {
-            $spans = array_merge($spans, $recognizer->detect($text));
+            // A text that may be in several languages is read by each with
+            // the function words of all of them.
+            $several = count($languages) > 1 && $recognizer instanceof NameRecognizer;
+
+            try {
+                if ($several) {
+                    $recognizer->readAlsoIn($languages);
+                }
+
+                $spans = array_merge($spans, $recognizer->detect($text));
+            } finally {
+                if ($several) {
+                    $recognizer->readAlsoIn([]);
+                }
+            }
         }
 
         $spans = array_values(array_filter($spans, fn (Span $s) => $this->typeAllowed($s->type)));
