@@ -409,9 +409,11 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
         $lastToken = $tokens[array_key_last($tokens)];
         $surnameConfirmed = $this->isSurname($lastToken[0]);
 
-        if (isset($this->ambiguousNames()[$first]) && ! $surnameConfirmed) {
+        if (isset($this->ambiguousNames()[$first]) && (! $surnameConfirmed || $this->followsArticle($restOffset))) {
             // "Luz"/"Rose"/"Faith" read as the common word far more often
-            // than as a bare, surname-less mention of the person.
+            // than as a bare, surname-less mention of the person, and so does
+            // one right after an article ("la Rosa de los Vientos", "A Graça
+            // de Deus").
             return [];
         }
 
@@ -420,6 +422,21 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
         $trimmed = substr($value, $relativeStart, $relativeEnd - $relativeStart);
 
         return $this->splitNameWords($trimmed, $offset + $relativeStart, $surnameConfirmed ? 0.9 : 0.85);
+    }
+
+    /**
+     * Whether the word at $offset comes right after an article (la, the, il,
+     * o, der...), which makes a given name that is also a word ("Rosa",
+     * "Stella") the word.
+     */
+    protected function followsArticle(int $offset): bool
+    {
+        $before = mb_strcut($this->text, max(0, $offset - 12), min($offset, 12));
+
+        return preg_match('/(?<!\p{L})(\p{L}+)\h+$/u', $before, $match) === 1 && in_array($this->fold($match[1]), [
+            'el', 'la', 'los', 'las', 'lo', 'un', 'una', 'els', 'les', 'the', 'a', 'an', 'le', 'il', 'gli', 'i',
+            'o', 'os', 'as', 'um', 'uma', 'der', 'die', 'das', 'den', 'dem', 'het', 'een',
+        ], true);
     }
 
     /**

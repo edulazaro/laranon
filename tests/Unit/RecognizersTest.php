@@ -549,6 +549,15 @@ class RecognizersTest extends TestCase
         $this->assertNull(SpanResolver::resolve($it->detect('Andrea Bocelli canta.'))[0]->gender);
     }
 
+    public function test_a_name_that_is_a_word_is_the_word_after_an_article(): void
+    {
+        $es = new PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame([], $values($es, 'Rumbo a la Rosa de los Vientos.'));
+        $this->assertSame(['Rosa', 'Martínez'], $values($es, 'Firma Rosa Martínez.'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();
