@@ -178,13 +178,16 @@ Laranon::withEntities([
 // "«CLIENT_1» contra «CLIENT_1»."
 ```
 
-For values where case means something (codes, references), pass `variants: false` and each written form gets its own token:
+For a value where case means something (a code, a reference), set `'variants' => false` on that entity, and each of its written forms gets its own token:
 
 ```php
-Laranon::withEntities([['value' => 'AB-12', 'type' => 'ref']], variants: false);
+Laranon::withEntities([
+    ['value' => 'Acme Health', 'type' => 'client'],             // "ACME HEALTH" shares its token
+    ['value' => 'AB-12', 'type' => 'ref', 'variants' => false], // "ab-12" gets its own
+]);
 ```
 
-`withStableEntities()` and `withModels()` take the same option. The default `entity` type always shares its token.
+`withStableEntities()` takes the same key. Entities from `withModels()` always share.
 
 ### Stable tokens for known entities
 

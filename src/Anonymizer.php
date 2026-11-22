@@ -44,6 +44,9 @@ class Anonymizer
     /** @var array<int, string> known-entity types whose written forms share a token */
     protected array $variantTypes = [];
 
+    /** @var array<int, array{type: string, value: string}> known entities given 'variants' => false */
+    protected array $literalEntities = [];
+
     protected Strategy|string|null $currentStrategy = null;
 
     /**
@@ -117,15 +120,15 @@ class Anonymizer
      * Add known entities (values you already have: client names, emails...)
      * for exact matching. Accepts plain strings or arrays with value/type.
      *
-     * They are found in any case ("Acme Health", "ACME HEALTH"). With
-     * $variants (the default) those written forms share one token and
-     * restore by context, as names do, whatever type you give them. Pass
-     * false for values where case means something (codes): each form then
-     * gets its own token. The default 'entity' type always shares.
+     * They are found in any case ("Acme Health", "ACME HEALTH"), and by
+     * default those written forms share one token and restore by context,
+     * as names do, whatever type you give them. An entity with 'variants' =>
+     * false, for a value where case means something (a code), gets one
+     * token per written form instead.
      *
-     * @param array<int, string|array{value: string, type?: string}> $entities
+     * @param array<int, string|array{value: string, type?: string, variants?: bool}> $entities
      */
-    public function withEntities(array $entities, string $defaultType = 'entity', bool $variants = true): static
+    public function withEntities(array $entities, string $defaultType = 'entity'): static
     {
         $normalized = [];
 
@@ -142,8 +145,12 @@ class Anonymizer
         $clone = clone $this;
         $clone->extraRecognizers[] = new KnownEntitiesRecognizer($normalized);
 
-        if ($variants) {
-            $clone->variantTypes = array_values(array_unique([...$clone->variantTypes, ...array_column($normalized, 'type')]));
+        foreach ($normalized as $entity) {
+            if (($entity['variants'] ?? true) === false) {
+                $clone->literalEntities[] = ['type' => $entity['type'], 'value' => (string) $entity['value']];
+            } elseif (! in_array($entity['type'], $clone->variantTypes, true)) {
+                $clone->variantTypes[] = $entity['type'];
+            }
         }
 
         return $clone;
@@ -151,11 +158,10 @@ class Anonymizer
 
     /**
      * Collect known entities from models using the Anonymizable trait.
-     * $variants as in withEntities().
      *
      * @param iterable<int, object> $models
      */
-    public function withModels(iterable $models, bool $variants = true): static
+    public function withModels(iterable $models): static
     {
         $entities = [];
 
@@ -165,7 +171,7 @@ class Anonymizer
             }
         }
 
-        return $entities === [] ? $this : $this->withEntities($entities, 'entity', $variants);
+        return $entities === [] ? $this : $this->withEntities($entities);
     }
 
     /**
@@ -175,11 +181,11 @@ class Anonymizer
      * in every scope and every call, forever, so the token can live in your
      * own database next to the record instead of being assigned on first
      * mention. Detection still requires the value to be found in the text,
-     * exactly like withEntities(), and $variants works the same.
+     * exactly like withEntities(), and 'variants' works the same.
      *
-     * @param array<int, array{value: string, id: int, type?: string}> $entities
+     * @param array<int, array{value: string, id: int, type?: string, variants?: bool}> $entities
      */
-    public function withStableEntities(array $entities, string $defaultType = 'entity', bool $variants = true): static
+    public function withStableEntities(array $entities, string $defaultType = 'entity'): static
     {
         $normalized = [];
 
@@ -188,7 +194,7 @@ class Anonymizer
             $normalized[] = $entity;
         }
 
-        $clone = $this->withEntities($normalized, $defaultType, $variants);
+        $clone = $this->withEntities($normalized, $defaultType);
         $clone->presets = array_merge($clone->presets, $normalized);
 
         return $clone;
@@ -241,9 +247,18 @@ class Anonymizer
             ->block($this->lockWait, $callback);
     }
 
-    protected function applyPresets(TokenMap $map): void
+    /**
+     * Tell the map how this run's known entities group their written forms.
+     */
+    protected function prepareGrouping(TokenMap $map): void
     {
         $map->groupLikeNames($this->variantTypes);
+        $map->keepLiteral($this->literalEntities);
+    }
+
+    protected function applyPresets(TokenMap $map): void
+    {
+        $this->prepareGrouping($map);
 
         foreach ($this->presets as $preset) {
             $map->preset($preset['type'], $preset['value'], $this->resolveStrategy(), $preset['id']);
@@ -258,7 +273,7 @@ class Anonymizer
      */
     public function anonymizeString(string $text, TokenMap $map): string
     {
-        $map->groupLikeNames($this->variantTypes);
+        $this->prepareGrouping($map);
 
         $strategy = $this->resolveStrategy();
         $spans = $this->scan($text, $map);

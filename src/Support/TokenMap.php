@@ -35,6 +35,9 @@ final class TokenMap
     /** @var array<string, true> own types grouped like names (see groupLikeNames()) */
     protected array $nameTypes = [];
 
+    /** @var array<string, true> "type|key" of known entities kept literal (see keepLiteral()) */
+    protected array $literal = [];
+
     /** @var array<string, array<int, array{0: string, 1: bool}>>|null */
     private ?array $heads = null;
 
@@ -52,6 +55,7 @@ final class TokenMap
      * @param array<string, int> $counters type => last index used
      * @param array<string, array<int, string>> $forms "type|key" => written forms
      * @param array<int, string> $nameTypes own types grouped like names
+     * @param array<int, string> $literal "type|key" of known entities kept literal
      */
     public function __construct(
         protected array $entries = [],
@@ -59,10 +63,41 @@ final class TokenMap
         protected array $counters = [],
         array $forms = [],
         array $nameTypes = [],
+        array $literal = [],
     ) {
         $this->nameTypes = array_fill_keys($nameTypes, true);
+        $this->literal = array_fill_keys($literal, true);
 
         $this->regroup($index, $forms);
+    }
+
+    /**
+     * Keep these known entities literal: each of their written forms gets
+     * its own token ("AB-12" and "ab-12" are not merged), for values where
+     * case means something, like codes. Values already in the map are
+     * regrouped.
+     *
+     * @param array<int, array{type: string, value: string}> $entities
+     */
+    public function keepLiteral(array $entities): void
+    {
+        $new = [];
+
+        foreach ($entities as $entity) {
+            $key = $entity['type'] . '|' . ValueKey::name($entity['value']);
+
+            if (! isset($this->literal[$key])) {
+                $new[$key] = true;
+            }
+        }
+
+        if ($new === []) {
+            return;
+        }
+
+        $this->literal += $new;
+
+        $this->regroup($this->index, $this->forms);
     }
 
     /**
@@ -173,6 +208,11 @@ final class TokenMap
 
     protected function keyFor(string $type, string $value): string
     {
+        // "|=" so a literal key never equals a grouped one.
+        if (isset($this->literal[$type . '|' . ValueKey::name($value)])) {
+            return $type . '|=' . $value;
+        }
+
         return $type . '|' . (isset($this->nameTypes[$type]) ? ValueKey::name($value) : ValueKey::of($type, $value));
     }
 
@@ -544,6 +584,7 @@ final class TokenMap
             'counters' => $this->counters,
             'forms' => $this->forms,
             'name_types' => array_keys($this->nameTypes),
+            'literal' => array_keys($this->literal),
         ];
     }
 
@@ -555,6 +596,7 @@ final class TokenMap
             $payload['counters'] ?? [],
             $payload['forms'] ?? [],
             $payload['name_types'] ?? [],
+            $payload['literal'] ?? [],
         );
     }
 }

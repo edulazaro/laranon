@@ -78,6 +78,21 @@ class TokenMapTest extends TestCase
         $this->assertSame('«CLIENT_1»', $token(TokenMap::fromArray($map->toArray()), 'Acme health'));
     }
 
+    public function test_a_literal_entity_survives_to_array(): void
+    {
+        $strategy = new TokenStrategy('«%s_%d»', ['ref' => 'REF']);
+        $token = fn (TokenMap $map, string $value) => $map->replacementFor(new Span(0, strlen($value), 'ref', $value), $strategy);
+
+        $map = new TokenMap();
+        $map->groupLikeNames(['ref']);
+        $map->keepLiteral([['type' => 'ref', 'value' => 'AB-12']]);
+
+        $this->assertSame('«REF_1»', $token($map, 'AB-12'));
+        $this->assertSame('«REF_2»', $token($map, 'ab-12'));
+        $this->assertSame('«REF_2»', $token(TokenMap::fromArray($map->toArray()), 'ab-12'));
+        $this->assertSame('«REF_3»', $token(TokenMap::fromArray($map->toArray()), 'Ab-12'));
+    }
+
     public function test_a_map_saved_by_1_2_still_groups_its_values(): void
     {
         $map = TokenMap::fromArray([
