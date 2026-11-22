@@ -140,7 +140,7 @@ Laranon::strategy('redact')->anonymize($text); // [DNI], one-way, nothing vaulte
 ```
 
 - `token` (default): `«PER_F_1»`, `«DNI_1»`... reversible, ideal for LLM round-trips.
-- `faker`: realistic surrogates with the same format (a valid fake DNI for a DNI, a bare given name for a name word), reversible, ideal for natural-reading document generation. Uniqueness is enforced by the map, a surrogate is never the original itself nor a word already in the text, a given name of known gender gets one of the same gender ("María" never becomes "Carlos"), and once a name pool (24 women's and 26 men's given names, 48 surnames) runs out the next ones fall back to `«PER_F_25»`-style tokens. A surrogate is still a real-looking word: if a model writes that same word on its own, restoring turns it into the original. For free LLM output, use `token`.
+- `faker`: realistic surrogates with the same format (a valid fake DNI for a DNI, a bare given name for a name word), reversible, ideal for natural-reading document generation. Uniqueness is enforced by the map, a surrogate is never the original itself nor a word already in the text, a given name of known gender gets one of the same gender ("María" never becomes "Carlos"), and once a name pool (50 women's and 50 men's given names, 48 surnames) runs out the next ones fall back to typed tokens such as `«PER_F_100»`. A surrogate is still a real-looking word: if a model writes that same word on its own, restoring turns it into the original. For free LLM output, use `token`.
 - `redact`: `[DNI]`, `[PER]`... one-way, nothing can be reversed, ideal for logs and outbound scrubbing.
 
 ### Known entities

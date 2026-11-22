@@ -512,6 +512,23 @@ class AnonymizerTest extends TestCase
         $this->assertSame($text, $session->restore($second));
     }
 
+    public function test_faker_serves_every_name_of_a_gender_before_falling_back(): void
+    {
+        $map = new TokenMap();
+        $faker = new FakerStrategy('«%s_%d»', ['person' => 'PER']);
+        $female = (new ReflectionClassConstant(FakerStrategy::class, 'FEMALE_NAMES'))->getValue();
+
+        // Men and women share the given-name counter: 10 men first, then as
+        // many women as the pool can still serve before the 50-name limit.
+        for ($i = 0; $i < 10; $i++) {
+            $map->replacementFor(new Span(0, 1, 'person', "Man{$i}", 0.9, 'm'), $faker);
+        }
+
+        for ($i = 0; $i < 40; $i++) {
+            $this->assertContains($map->replacementFor(new Span(0, 1, 'person', "Woman{$i}", 0.9, 'f'), $faker), $female);
+        }
+    }
+
     public function test_faker_falls_back_to_tokens_when_its_name_pool_runs_out(): void
     {
         $map = new TokenMap();
@@ -519,15 +536,17 @@ class AnonymizerTest extends TestCase
 
         $replacements = [];
 
-        for ($i = 0; $i < 80; $i++) {
+        for ($i = 0; $i < 250; $i++) {
             $replacements[] = $map->replacementFor(new Span(0, 1, 'person', "Name{$i}"), $faker);
         }
 
-        $this->assertCount(80, array_unique($replacements));
+        $this->assertCount(250, array_unique($replacements));
 
         foreach ($replacements as $replacement) {
             $this->assertMatchesRegularExpression('/^(\p{Lu}\p{Ll}+|«PER_\d+»)$/u', $replacement);
         }
+
+        $this->assertCount(100, preg_grep('/^\p{Lu}/u', $replacements));
     }
 
     public function test_bare_name_word_reuses_the_token_from_an_earlier_turn(): void

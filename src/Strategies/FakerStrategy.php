@@ -30,18 +30,28 @@ class FakerStrategy implements Strategy
     /**
      * Curated so that no entry is also a common Spanish word ("Clara",
      * "Alba", "Rosa" are adjectives or nouns that a model writes often).
+     * Each gender holds 50 names, as many as a pool serves before the typed
+     * fallback (see fromPool()): the given-name counter is shared by both
+     * genders, so a smaller pool would run out while it still had free names.
      */
     protected const FEMALE_NAMES = [
         'Lucía', 'Marta', 'Elena', 'Sara', 'Nora', 'Irene', 'Inés', 'Beatriz',
         'Natalia', 'Silvia', 'Raquel', 'Patricia', 'Teresa', 'Cristina', 'Lorena', 'Noelia',
         'Susana', 'Verónica', 'Miriam', 'Nuria', 'Eva', 'Ainhoa', 'Julia', 'Lidia',
+        'Laura', 'Paula', 'Claudia', 'Alicia', 'Carolina', 'Mónica', 'Sonia', 'Yolanda',
+        'Sandra', 'Isabel', 'Esther', 'Rebeca', 'Olga', 'Carmen', 'Celia', 'Leire',
+        'Itziar', 'Amaia', 'Begoña', 'Alejandra', 'Ariadna', 'Vanesa', 'Tamara', 'Jimena',
+        'Adriana', 'Daniela',
     ];
 
     protected const MALE_NAMES = [
         'Carlos', 'Andrés', 'Javier', 'Pablo', 'Hugo', 'Adrián', 'Diego', 'Mario',
         'Álvaro', 'Gonzalo', 'Rubén', 'Sergio', 'Óscar', 'Víctor', 'Daniel', 'Alberto',
         'Ignacio', 'Fernando', 'Ricardo', 'Rodrigo', 'Tomás', 'Joaquín', 'Enrique', 'Gabriel',
-        'Héctor', 'Raúl',
+        'Héctor', 'Raúl', 'Manuel', 'Francisco', 'Antonio', 'Miguel', 'Luis', 'Alejandro',
+        'Rafael', 'Jorge', 'Iván', 'Marcos', 'Eduardo', 'Samuel', 'Nicolás', 'Emilio',
+        'Gerardo', 'Julián', 'Agustín', 'Lorenzo', 'Esteban', 'Bruno', 'Iker', 'Aitor',
+        'Jaime', 'Guillermo',
     ];
 
     /**
@@ -108,8 +118,10 @@ class FakerStrategy implements Strategy
 
     /**
      * Consecutive indexes walk consecutive entries of the pool, so the
-     * retries of a collision try every name once. Past the end of the pool a
-     * typed token takes over, instead of a made-up "Carlos_1".
+     * retries of a collision try every name once. A value's first index is
+     * its type's counter, shared by both genders, so a value that starts
+     * within the pool size can walk the whole pool before twice that size.
+     * Past it a typed token takes over, instead of a made-up "Carlos_1".
      *
      * @param array<int, string> $pool
      */
@@ -117,7 +129,7 @@ class FakerStrategy implements Strategy
     {
         $size = count($pool);
 
-        if ($index > $size) {
+        if ($index >= 2 * $size) {
             return $this->fallbackToken($span, $index);
         }
 
