@@ -48,8 +48,10 @@ class IbanRecognizer extends RegexRecognizer
 
     protected function patterns(): array
     {
+        // Case-insensitive: "es91 2100…" is still an IBAN, and mod-97 keeps
+        // lowercase codes that only look like one out.
         return [
-            '/\b[A-Z]{2}\d{2}(?:' . Separators::SPACE . '?[A-Z0-9]{2,4}){3,8}\b/' => 1.0,
+            '/\b[A-Z]{2}\d{2}(?:' . Separators::SPACE . '?[A-Z0-9]{2,4}){3,8}\b/i' => 1.0,
         ];
     }
 

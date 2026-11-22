@@ -97,6 +97,14 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_lowercase_iban_is_detected(): void
+    {
+        $spans = (new IbanRecognizer())->detect('Cuenta es91 2100 0418 4502 0005 1332 de la titular.');
+
+        $this->assertCount(1, $spans);
+        $this->assertSame('es91 2100 0418 4502 0005 1332', $spans[0]->value);
+    }
+
     public function test_no_break_spaces_and_typographic_dashes_separate_groups(): void
     {
         $nbsp = "\u{00A0}";
