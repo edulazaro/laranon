@@ -279,7 +279,9 @@ abstract class NameRecognizer implements Recognizer
             } else {
                 $kept = $this->nameLength($value, $offset);
 
-                array_push($spans, ...$resolve(substr($value, 0, $kept), $offset));
+                if (! $this->followsSaint($offset)) {
+                    array_push($spans, ...$resolve(substr($value, 0, $kept), $offset));
+                }
 
                 $position = $offset + max($kept, 1);
             }
@@ -406,6 +408,18 @@ abstract class NameRecognizer implements Recognizer
         $trimmed = substr($value, $relativeStart, $relativeEnd - $relativeStart);
 
         return $this->splitNameWords($trimmed, $offset + $relativeStart, $surnameConfirmed ? 0.9 : 0.85);
+    }
+
+    /**
+     * Whether the name at $offset comes right after San, Santa, Santo or
+     * Sant: a given name there is a saint or a place ("San Fernando de
+     * Henares", "Santa María del Camí", "Sant Joan Despí"), not a person.
+     */
+    protected function followsSaint(int $offset): bool
+    {
+        $before = mb_strcut($this->text, max(0, $offset - 8), min($offset, 8));
+
+        return preg_match('/(?<!\p{L})(?i:san|santa|santo|sant)\h+$/u', $before) === 1;
     }
 
     /**

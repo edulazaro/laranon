@@ -333,6 +333,16 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Juan', 'García', 'Pérez', 'López'], $values('Comparece Juan García Pérez López.'));
     }
 
+    public function test_a_given_name_after_san_or_santa_is_a_saint_or_a_place(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame([], $values('Vive en San Fernando de Henares, en Santa María del Camí y en Sant Joan Despí.'));
+        $this->assertSame([], $values('SAN FERNANDO DE HENARES'));
+        $this->assertSame(['Juan', 'Martín'], $values('Comparece Juan San Martín.'));
+    }
+
     public function test_a_name_on_each_line_is_found_on_every_line(): void
     {
         $recognizer = new PersonNameRecognizer();
