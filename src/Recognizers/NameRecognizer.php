@@ -29,6 +29,9 @@ abstract class NameRecognizer implements Recognizer
     /** @var array<string, true>|null */
     protected ?array $ambiguousNames = null;
 
+    /** @var array<string, string>|null */
+    protected ?array $genders = null;
+
     public function __construct(protected ?string $dataPath = null)
     {
     }
@@ -39,6 +42,18 @@ abstract class NameRecognizer implements Recognizer
      * The first captured word is typed 'person'.
      */
     protected function honorificPattern(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Gazetteer file mapping given names to 'f' or 'm', or null when the
+     * locale has none. A name not in it, or ambiguous (Cruz, Reyes), gets no
+     * gender. The gender belongs to the word, like its token: an honorific
+     * does not set it, since "Dña. Cruz" and "D. Cruz" share the word, and
+     * the honorific stays in cleartext anyway.
+     */
+    protected function gendersFile(): ?string
     {
         return null;
     }
@@ -249,6 +264,8 @@ abstract class NameRecognizer implements Recognizer
      * many (Sr. García, Sr. Pérez López). With a single bare word $loneWordType
      * decides: 'surname' after a surname honorific, 'person' otherwise (Dña. Luz).
      *
+     * The given name carries the gazetteer's gender, if the name is in it.
+     *
      * @return array<int, Span>
      */
     protected function splitNameWords(string $value, int $offset, float $confidence, string $loneWordType = 'person'): array
@@ -274,7 +291,9 @@ abstract class NameRecognizer implements Recognizer
             : (count($words) === 1 ? $loneWordType : 'person');
 
         foreach ($words as [$word, $relative]) {
-            $spans[] = new Span($offset + $relative, strlen($word), $type, $word, $confidence);
+            $gender = $type === 'person' ? ($this->genders()[$this->parts($word)[0]] ?? null) : null;
+
+            $spans[] = new Span($offset + $relative, strlen($word), $type, $word, $confidence, $gender);
 
             $type = 'surname';
         }
@@ -314,6 +333,21 @@ abstract class NameRecognizer implements Recognizer
         }
 
         return $this->ambiguousNames;
+    }
+
+    /**
+     * @return array<string, string> folded given name => 'f' or 'm'
+     */
+    protected function genders(): array
+    {
+        if ($this->genders === null) {
+            $file = $this->gendersFile();
+            $path = ($this->dataPath ?? dirname(__DIR__, 2) . '/data') . '/' . $file;
+
+            $this->genders = $file && is_file($path) ? require $path : [];
+        }
+
+        return $this->genders;
     }
 
     /**

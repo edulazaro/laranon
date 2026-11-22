@@ -73,11 +73,29 @@ class AnonymizerTest extends TestCase
         $this->anonymizer()->only(['dnii'])->anonymize('DNI 12345678Z.');
     }
 
+    public function test_given_name_tokens_say_their_gender(): void
+    {
+        $original = 'María firmó. Comparecen María López, Juan Pérez y Reyes Martín.';
+
+        $result = $this->anonymizer()->anonymize($original);
+
+        // Reyes is ambiguous in the census, so its token stays neutral.
+        $this->assertSame('«PER_F_1» firmó. Comparecen «PER_F_1» «AP_1», «PER_M_2» «AP_2» y «PER_3» «AP_3».', $result->text);
+        $this->assertSame($original, $result->restore($result->text));
+    }
+
+    public function test_gender_can_be_turned_off(): void
+    {
+        $this->app['config']->set('laranon.gender', false);
+
+        $this->assertSame('Comparece «PER_1» «AP_1».', $this->anonymizer()->anonymize('Comparece María López.')->text);
+    }
+
     public function test_ways_of_writing_a_name_share_one_token(): void
     {
         $result = $this->anonymizer()->anonymize("DEMANDANTE: JUAN GARCÍA\nComparece Juan García. Lo ratifica el SR. GARCIA.");
 
-        $this->assertSame("DEMANDANTE: «PER_1» «AP_1»\nComparece «PER_1» «AP_1». Lo ratifica el SR. «AP_1».", $result->text);
+        $this->assertSame("DEMANDANTE: «PER_M_1» «AP_1»\nComparece «PER_M_1» «AP_1». Lo ratifica el SR. «AP_1».", $result->text);
     }
 
     public function test_a_name_seen_in_several_forms_restores_to_the_one_that_fits(): void
@@ -86,7 +104,7 @@ class AnonymizerTest extends TestCase
 
         $this->assertSame(
             "PARTE: JUAN GARCÍA\nEl demandante Juan García reclama.",
-            $result->restore("PARTE: «PER_1» «AP_1»\nEl demandante «PER_1» «AP_1» reclama."),
+            $result->restore("PARTE: «PER_M_1» «AP_1»\nEl demandante «PER_M_1» «AP_1» reclama."),
         );
 
         // The input itself comes back as it was.
@@ -97,7 +115,7 @@ class AnonymizerTest extends TestCase
     {
         $result = $this->anonymizer()->anonymize('Comparece Juan García.');
 
-        $this->assertSame('PARTE: Juan García', $result->restore('PARTE: «PER_1» «AP_1»'));
+        $this->assertSame('PARTE: Juan García', $result->restore('PARTE: «PER_M_1» «AP_1»'));
     }
 
     public function test_an_identifier_written_in_several_ways_shares_its_token(): void
@@ -159,7 +177,7 @@ class AnonymizerTest extends TestCase
         $this->assertSame('Contra «CLIENT_1».', $clients->text);
 
         // A typo in except() only anonymizes more, so it does not throw.
-        $this->assertSame('Firma «PER_1» «AP_1».', $this->anonymizer()->except('persona')->anonymize('Firma María López.')->text);
+        $this->assertSame('Firma «PER_F_1» «AP_1».', $this->anonymizer()->except('persona')->anonymize('Firma María López.')->text);
     }
 
     public function test_redact_strategy_is_one_way(): void
@@ -270,7 +288,7 @@ class AnonymizerTest extends TestCase
 
         $this->assertStringNotContainsString('María', $result->text);
         $this->assertStringNotContainsString('López', $result->text);
-        $this->assertSame(2, substr_count($result->text, '«PER_1»'));
+        $this->assertSame(2, substr_count($result->text, '«PER_F_1»'));
         $this->assertSame(1, substr_count($result->text, '«AP_1»'));
 
         // Restoration is byte-exact: each token maps back to the literal word.
@@ -289,7 +307,7 @@ class AnonymizerTest extends TestCase
 
         // Same given-name token everywhere, different surname tokens: the
         // LLM sees exactly the structure a human reader sees.
-        $this->assertSame(3, substr_count($result->text, '«PER_1»'));
+        $this->assertSame(3, substr_count($result->text, '«PER_F_1»'));
         $this->assertSame(1, substr_count($result->text, '«AP_1»'));
         $this->assertSame(1, substr_count($result->text, '«AP_2»'));
 
@@ -496,7 +514,7 @@ class AnonymizerTest extends TestCase
         $scoped = $this->anonymizer()->scope('chat-continuity');
 
         $turn1 = $scoped->anonymize('La demandante María López presentó el escrito.');
-        $this->assertStringContainsString('«PER_1»', $turn1->text);
+        $this->assertStringContainsString('«PER_F_1»', $turn1->text);
         $this->assertStringContainsString('«AP_1»', $turn1->text);
 
         // Turn 2 never repeats the surname; the word "María" still resolves
@@ -504,7 +522,7 @@ class AnonymizerTest extends TestCase
         $turn2 = $scoped->anonymize('María confirmó los datos aportados.');
 
         $this->assertStringNotContainsString('María', $turn2->text);
-        $this->assertStringContainsString('«PER_1»', $turn2->text);
+        $this->assertStringContainsString('«PER_F_1»', $turn2->text);
         $this->assertSame('María confirmó los datos aportados.', $turn2->restore($turn2->text));
     }
 

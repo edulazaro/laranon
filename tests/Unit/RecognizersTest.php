@@ -184,6 +184,19 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Luis', 'Fernando', 'Castro'], array_map(fn ($span) => $span->value, $spans));
     }
 
+    public function test_a_given_name_carries_its_gender_from_the_gazetteer(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $gender = fn (string $text) => SpanResolver::resolve($recognizer->detect($text))[0]->gender;
+
+        $this->assertSame('f', $gender('Comparece María López.'));
+        $this->assertSame('m', $gender('Comparece Juan Pérez.'));
+
+        // Ambiguous in the census: no gender, honorific or not.
+        $this->assertNull($gender('Comparece Reyes Martín.'));
+        $this->assertNull($gender('Comparece Dña. Cruz Martín.'));
+    }
+
     public function test_person_name_via_honorific_splits_into_word_spans(): void
     {
         // The honorific and the plain pattern both hit here; SpanResolver

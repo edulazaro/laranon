@@ -365,10 +365,12 @@ class Anonymizer
     protected function sweepKnownNameWords(string $text, array $spans, TokenMap $map): array
     {
         $known = [];
+        $genders = [];
 
         foreach ($spans as $span) {
             if ($span->type === 'person' || $span->type === 'surname') {
                 $known[$span->value] ??= $span->type;
+                $genders[$span->value] ??= $span->gender;
             }
         }
 
@@ -393,7 +395,9 @@ class Anonymizer
                 }
 
                 foreach ($matches[0] as [$found, $offset]) {
-                    $bare = new Span($offset, strlen($found), $type, $found, 0.85);
+                    // A bare "María" before "María López" takes the token first,
+                    // so it carries the word's gender too.
+                    $bare = new Span($offset, strlen($found), $type, $found, 0.85, $genders[$literal] ?? null);
 
                     if ($this->overlapsAny($bare, $spans) || $this->overlapsAny($bare, $swept)) {
                         continue;

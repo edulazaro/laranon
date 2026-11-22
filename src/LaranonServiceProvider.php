@@ -107,7 +107,7 @@ class LaranonServiceProvider extends ServiceProvider
 
         foreach ($config['strategies'] ?? [] as $name => $class) {
             $strategies[$name] = match (true) {
-                is_a($class, TokenStrategy::class, true) => new $class($format, $labels),
+                is_a($class, TokenStrategy::class, true) => new $class($format, $labels, (bool) ($config['gender'] ?? true)),
                 is_a($class, FakerStrategy::class, true) => new $class($format, $labels),
                 is_a($class, RedactStrategy::class, true) => new $class($labels),
                 default => $this->app->make($class),

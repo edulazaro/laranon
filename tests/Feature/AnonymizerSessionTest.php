@@ -27,9 +27,9 @@ class AnonymizerSessionTest extends TestCase
         // ...and alone in a later, separate call: must reuse the SAME token.
         $b = $anon->anonymize('María confirmó los datos.');
 
-        // Juan=PER_1, María=PER_2 in the first string; the second reuses PER_2.
-        $this->assertStringContainsString('«PER_2»', $a);
-        $this->assertStringContainsString('«PER_2»', $b);
+        // Juan=PER_M_1, María=PER_F_2 in the first string; the second reuses PER_F_2.
+        $this->assertStringContainsString('«PER_F_2»', $a);
+        $this->assertStringContainsString('«PER_F_2»', $b);
 
         $this->assertSame('María confirmó los datos.', $anon->restore($b));
     }
@@ -62,7 +62,7 @@ class AnonymizerSessionTest extends TestCase
         $this->assertStringNotContainsString('María', $out[1]['content']);
 
         // Reverse the assistant reply built on the same session.
-        $reply = '«PER_1» «AP_1» reclama 4.000 €.';
+        $reply = '«PER_F_1» «AP_1» reclama 4.000 €.';
         $this->assertSame('María López reclama 4.000 €.', $anon->restore($reply));
     }
 
@@ -139,7 +139,7 @@ class AnonymizerSessionTest extends TestCase
         $this->assertStringNotContainsString('12345678Z', $messages[2]['content']);
 
         // 3. Model reply (tokens only) -> restore for the user.
-        $reply = '«PER_1» «AP_1» reclama 4.000 € y su DNI es «DNI_1».';
+        $reply = '«PER_F_1» «AP_1» reclama 4.000 € y su DNI es «DNI_1».';
         $this->assertSame(
             'María López reclama 4.000 € y su DNI es 12345678Z.',
             $anon->restore($reply),

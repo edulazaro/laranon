@@ -12,7 +12,7 @@ $result = Laranon::scope("chat-{$sessionId}")->anonymize(
 );
 
 $result->text;
-// "Our client «PER_1» «AP_1», SSN «SSN_1», requests the transfer to «IBAN_1»."
+// "Our client «PER_M_1» «AP_1», SSN «SSN_1», requests the transfer to «IBAN_1»."
 
 $llmResponse = $chat->send($result->text);
 
@@ -100,12 +100,13 @@ Because the chat history is stored **in the clear** (real values), each turn jus
 
 ### Per-word name tokens
 
-Person names are tokenized per WORD, never per person. "John Smith" becomes `«PER_1» «AP_1»`: the given name and the surname each get their own independent, stable token. Consistency is automatic and no identity is ever guessed:
+Person names are tokenized per WORD, never per person. "John Smith" becomes `«PER_M_1» «AP_1»`: the given name and the surname each get their own independent, stable token. Consistency is automatic and no identity is ever guessed:
 
-- A later bare "John" (same text or a later call in the same scope) gets `«PER_1»` again. The token belongs to the word, not to a person, so it is correct by construction.
-- "John Baker" becomes `«PER_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
+- A later bare "John" (same text or a later call in the same scope) gets `«PER_M_1»` again. The token belongs to the word, not to a person, so it is correct by construction.
+- "John Baker" becomes `«PER_M_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
 - "Mr. Baker" becomes "Mr. `«AP_2»`", sharing the token of the "Baker" in "John Baker". Honorifics themselves stay in cleartext.
-- Grammatical particles stay in cleartext too: "John de la Cruz" reads `«PER_1» de la «AP_3»`.
+- A given name says its gender: `«PER_F_1»` for a woman's name, `«PER_M_1»` for a man's, `«PER_1»` when the name is ambiguous (Reyes, Cruz) or unknown. The model keeps Spanish agreement ("la demandante") without seeing the name, so there is no need to leave given names in cleartext with `except('person')`. The gender comes from the census (INE) and belongs to the word, like its token; honorifics stay in cleartext anyway. Set `gender` to `false` in the config to keep every given name neutral.
+- Grammatical particles stay in cleartext too: "John de la Cruz" reads `«PER_M_1» de la «AP_3»`.
 - The ways a document writes a word ("García", "GARCÍA", "GARCIA") share its token, so the model sees one person. Case and accents are ignored, ñ and ç are not (Peña and Pena are different surnames).
 - Restoration is exact: each token maps back to the literal word. A word seen in several forms restores to the one that fits its line: the capitals form among words in capitals ("PARTE: JUAN GARCÍA"), the other one in running text ("el demandante Juan García"). A word seen in one form always restores to exactly that form.
 
@@ -138,7 +139,7 @@ Laranon::strategy('faker')->anonymize($text);  // valid surrogates, same format
 Laranon::strategy('redact')->anonymize($text); // [DNI], one-way, nothing vaulted
 ```
 
-- `token` (default): `«PER_1»`, `«DNI_1»`... reversible, ideal for LLM round-trips.
+- `token` (default): `«PER_F_1»`, `«DNI_1»`... reversible, ideal for LLM round-trips.
 - `faker`: realistic surrogates with the same format (a valid fake DNI for a DNI, a bare given name for a name word), reversible, ideal for natural-reading document generation. Uniqueness is enforced by the map, a surrogate is never the original itself nor a word already in the text, and once the name pool (50 given names, 48 surnames) runs out the next ones fall back to `«PER_51»`-style tokens. A surrogate is still a real-looking word: if a model writes that same word on its own, restoring turns it into the original. For free LLM output, use `token`.
 - `redact`: `[DNI]`, `[PER]`... one-way, nothing can be reversed, ideal for logs and outbound scrubbing.
 
@@ -270,6 +271,7 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | `data/es/names.php` | ~16,600 | INE, national census, frequency >= 20 (via [marcboquet/spanish-names](https://github.com/marcboquet/spanish-names)) |
 | `data/es/surnames.php` | ~24,300 | INE, national census, frequency >= 20 |
 | `data/es/names_ambiguous.php` | 34 | hand-curated (Marian and virtue names) |
+| `data/es/names_gender.php` | ~15,800 | INE, by first given name: `f` or `m` when 95% or more of the people bearing it share it; ambiguous names left out |
 | `data/en/names.php` | ~7,300 | US SSA baby name applications, aggregate occurrences >= 100 (via [hackerb9/ssa-baby-names](https://github.com/hackerb9/ssa-baby-names)) |
 | `data/en/surnames.php` | ~162,000 | US Census Bureau, 2010 release, count >= 100 |
 | `data/en/names_ambiguous.php` | 31 | hand-curated (flower, gem and virtue names) |

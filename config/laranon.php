@@ -65,6 +65,15 @@ return [
 
     'token_format' => '«%s_%d»',
 
+    /*
+    | A given name of known gender says it in its token: «PER_F_1» for a woman,
+    | «PER_M_2» for a man, «PER_3» when the name is ambiguous or unknown. The
+    | model keeps Spanish agreement ("la demandante") without seeing the name.
+    | Set to false to keep every given name neutral.
+    */
+
+    'gender' => true,
+
     'labels' => [
         'person' => 'PER',
         'surname' => 'AP',

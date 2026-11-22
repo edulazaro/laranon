@@ -5,6 +5,7 @@ namespace EduLazaro\Laranon\Support;
 /**
  * A detected PII occurrence. Offsets are byte-based (as returned by
  * PREG_OFFSET_CAPTURE) and must be used with byte-based string functions.
+ * A given name can carry its gender ('f' or 'm'), null when unknown.
  */
 final class Span
 {
@@ -14,6 +15,7 @@ final class Span
         public readonly string $type,
         public readonly string $value,
         public readonly float $confidence = 1.0,
+        public readonly ?string $gender = null,
     ) {
     }
 
