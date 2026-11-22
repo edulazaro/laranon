@@ -26,9 +26,11 @@ abstract class NameRecognizer implements Recognizer
      * inner capital is covered (McKellen, MacArthur, DiCaprio, DeVito,
      * LeBlanc, DuPont, VanDyke), with straight or typographic apostrophes
      * (O'Brien, O’Neill, D'Angelo, Dell'Orto) and hyphenated parts
-     * (Pérez-Reverte). A run of capitals alone (ABC) is not a name word.
+     * (Pérez-Reverte). A run of capitals alone (ABC) is not a name word, and
+     * a name word never ends in an apostrophe: in "‘Juan García’" the quote
+     * closes the name.
      */
-    protected const NAME_WORD = '(?:\p{Lu}[\p{Ll}\'’]+)+(?:[-\x{2010}\x{2011}](?:\p{Lu}[\p{Ll}\'’]+)+)*';
+    protected const NAME_WORD = '(?:\p{Lu}[\p{Ll}\'’]+)+(?:[-\x{2010}\x{2011}](?:\p{Lu}[\p{Ll}\'’]+)+)*(?<![\'’])';
 
     /**
      * A given-name initial ("F.", and the Spanish "M.ª"/"Mª" for María), for

@@ -29,7 +29,7 @@ class PersonNameRecognizer extends NameRecognizer
      */
     protected function honorificName(): string
     {
-        $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*';
+        $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*(?<![\'’])';
         $next = '(?:' . $word . '|' . self::PREFIXED_WORD . ')';
 
         return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e)\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';

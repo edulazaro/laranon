@@ -55,6 +55,14 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_a_closing_quote_is_not_part_of_the_name(): void
+    {
+        $this->assertSame(
+            '‘«PER_M_1» «AP_1»’ declaró. Luego «AP_1» se fue. \'«PER_F_2» «AP_2»\' firma y «AP_2» sale.',
+            $this->anonymizer()->anonymize('‘Juan García’ declaró. Luego García se fue. \'Ana López\' firma y López sale.')->text,
+        );
+    }
+
     public function test_words_on_the_line_after_a_name_stay_in_cleartext(): void
     {
         $text = "D.ª Raquel Blázquez Martín\nEn Madrid, a 21 de julio.\nProcurador/a: Jorge Rodriguez Simon\nAbogado/a: Ana Ruiz\nEn el recurso.";
