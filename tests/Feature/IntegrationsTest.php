@@ -69,9 +69,19 @@ class IntegrationsTest extends TestCase
             JsonScrubber::scrub('{"juan.garcia@example.com":{"name":"Juan García","phone":612345678}}', $redact),
         );
 
-        // An integer PHP cannot hold, or two keys that would scrub to the same
-        // one, cannot be re-encoded faithfully: the caller treats it as text.
-        $this->assertNull(JsonScrubber::scrub('{"id":123456789012345678901,"name":"Juan García"}', $redact));
+        // A name found in one value is found in the others.
+        $this->assertSame(
+            '{"cliente":"[PER] [AP] [AP]","nota":"[AP] no contesta; hablar con [AP]"}',
+            JsonScrubber::scrub('{"cliente":"María López Ruiz","nota":"López no contesta; hablar con Ruiz"}', $redact),
+        );
+
+        // An integer too large for PHP comes back as it was, or scrubbed.
+        $this->assertSame(
+            '{"ccc":"[CCC]","id":18446744073709551615}',
+            JsonScrubber::scrub('{"ccc":21000418450200051332,"id":18446744073709551615}', $redact),
+        );
+
+        // Two keys that would scrub to the same one: the caller treats it as text.
         $this->assertNull(JsonScrubber::scrub('{"ana@example.com":1,"luis@example.com":2}', $redact));
     }
 
