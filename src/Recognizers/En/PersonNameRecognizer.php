@@ -39,6 +39,17 @@ class PersonNameRecognizer extends NameRecognizer
         return '/(?<![\p{L}\p{N}])' . $this->name(1) . '(?![\p{L}\p{N}])/u';
     }
 
+    protected function upperNamePattern(): ?string
+    {
+        // All-caps names ("JOHN DOE v. RICHARD ROE"), as captions and court
+        // documents write them, only within a line, like the Spanish ones.
+        $part = '(?:\p{Lu}[\'’])?\p{Lu}{2,}';
+        $word = $part . '(?:' . self::HYPHEN . $part . ')*';
+
+        return '/(?<![\p{L}\p{N}])' . $word
+            . '(?:\h+' . self::INITIAL . '\h+' . $word . '|\h+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
+    }
+
     /**
      * A capitalized name word (see NameRecognizer::NAME_WORD): McKellen,
      * O'Brien, Zeta-Jones.
@@ -72,6 +83,15 @@ class PersonNameRecognizer extends NameRecognizer
     protected function ambiguousNamesFile(): ?string
     {
         return 'en/names_ambiguous.php';
+    }
+
+    /**
+     * Only a frequent given name opens a name in capitals: the census lists
+     * rare ones that are words ("GENERAL MOTORS").
+     */
+    protected function commonNamesFile(): ?string
+    {
+        return 'en/names_frequent.php';
     }
 
     protected function gendersFile(): ?string
