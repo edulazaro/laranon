@@ -375,6 +375,7 @@ class Anonymizer
         }
 
         $spans = array_values(array_filter($spans, fn (Span $s) => $this->typeAllowed($s->type)));
+        $spans = $this->neutralWhereGendersDisagree($spans);
 
         $spans = SpanResolver::resolve($spans);
         $spans = $this->sweepKnownNameWords($text, $spans, $map);
@@ -383,6 +384,33 @@ class Anonymizer
         usort($spans, fn (Span $a, Span $b) => $a->start <=> $b->start);
 
         return $spans;
+    }
+
+    /**
+     * The same name read by the recognizers of several languages can get a
+     * different gender from each: then it gets none, rather than a guess. A
+     * recognizer with no gender for it has no say (the packs without gender
+     * data of their own).
+     *
+     * @param array<int, Span> $spans
+     * @return array<int, Span>
+     */
+    protected function neutralWhereGendersDisagree(array $spans): array
+    {
+        $genders = [];
+
+        foreach ($spans as $span) {
+            if ($span->gender !== null) {
+                $genders[$span->start . '|' . $span->length . '|' . $span->type][$span->gender] = true;
+            }
+        }
+
+        return array_map(
+            fn (Span $span) => count($genders[$span->start . '|' . $span->length . '|' . $span->type] ?? []) > 1
+                ? new Span($span->start, $span->length, $span->type, $span->value, $span->confidence)
+                : $span,
+            $spans,
+        );
     }
 
     /**
