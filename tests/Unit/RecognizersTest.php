@@ -164,6 +164,23 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values($en, 'Rocket by Wernher von Braun.'));
     }
 
+    public function test_initials_inside_or_before_a_name_stay_in_cleartext(): void
+    {
+        $es = new PersonNameRecognizer();
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame(['Juan', 'Pérez'], $values($es, 'Firma Juan J. Pérez.'));
+        $this->assertSame(['María', 'López'], $values($es, 'Comparece María P. López.'));
+        $this->assertSame(['José', 'García'], $values($es, 'Comparece M.ª José García.'));
+        $this->assertSame(['JUAN', 'PÉREZ', 'GARCÍA'], $values($es, 'Comparece JUAN J. PÉREZ GARCÍA.'));
+        $this->assertSame(['John', 'Kennedy'], $values($en, 'President John F. Kennedy.'));
+        $this->assertSame(['Smith'], $values($en, 'Signed by J. Smith.'));
+
+        // Company forms written together are not initials.
+        $this->assertSame([], $values($es, 'Telefónica S.A. Madrid presentó recurso.'));
+    }
+
     public function test_a_hyphenated_surname_is_one_surname_word(): void
     {
         $cases = [

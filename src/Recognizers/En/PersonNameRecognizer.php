@@ -35,13 +35,13 @@ class PersonNameRecognizer extends NameRecognizer
 
     /**
      * A name word followed by at least $more (and up to 3) more, joined by
-     * spaces or by particles (Vincent van Gogh, Leonardo da Vinci).
+     * spaces, particles (Vincent van Gogh) or initials (John F. Kennedy).
      */
     protected function name(int $more): string
     {
         $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
-        return self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){' . $more . ',3}';
+        return self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){' . $more . ',3}';
     }
 
     protected function firstNamesFile(): string

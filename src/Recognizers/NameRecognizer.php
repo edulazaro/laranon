@@ -31,6 +31,12 @@ abstract class NameRecognizer implements Recognizer
     protected const NAME_WORD = '(?:\p{Lu}[\p{Ll}\'’]+)+(?:[-\x{2010}\x{2011}](?:\p{Lu}[\p{Ll}\'’]+)+)*';
 
     /**
+     * A given-name initial ("F.", and the Spanish "M.ª"/"Mª" for María), for
+     * patterns with the u modifier. It stays in cleartext.
+     */
+    protected const INITIAL = '\p{Lu}(?:\.ª?|ª)';
+
+    /**
      * A name word opened by a lowercase prefix: d'Ors, dell'Acqua, al-Assad,
      * el-Sisi. Never the first word of a name.
      */
@@ -200,7 +206,45 @@ abstract class NameRecognizer implements Recognizer
             }
         }
 
+        if (preg_match_all($this->initialsPattern(), $text, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[1] as [$value, $offset]) {
+                array_push($spans, ...$this->resolveInitialsCandidate($value, $offset));
+            }
+        }
+
         return $spans;
+    }
+
+    /**
+     * A name opened by initials and no given name ("J. Smith", "Fdo.: A.
+     * García López", "J. R. R. Tolkien"). Its first capturing group holds
+     * the words after the initials. Initials written together ("S.A.",
+     * "S.L.") are company forms and are left out.
+     */
+    protected function initialsPattern(): string
+    {
+        $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
+
+        return '/(?<![\p{L}\p{N}.])' . self::INITIAL . '(?:\s' . self::INITIAL . '){0,2}\s+'
+            . '(' . self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){0,2})(?![\p{L}\p{N}])/u';
+    }
+
+    /**
+     * The words after initials are a name only when the last one is a known
+     * surname. With no given name to type, every word is a surname.
+     *
+     * @return array<int, Span>
+     */
+    protected function resolveInitialsCandidate(string $value, int $offset): array
+    {
+        preg_match_all('/\S+/u', $value, $matches);
+        $words = $matches[0];
+
+        if ($words === [] || ! $this->isSurname(end($words))) {
+            return [];
+        }
+
+        return $this->splitNameWords($value, $offset, 0.85, 'surname');
     }
 
     /**
@@ -314,7 +358,9 @@ abstract class NameRecognizer implements Recognizer
         $words = [];
 
         foreach ($matches[0] as [$word, $relative]) {
-            if (! isset($particles[$this->fold($word)]) && ! isset($lowercase[$word])) {
+            $initial = preg_match('/^' . self::INITIAL . '$/u', $word) === 1;
+
+            if (! $initial && ! isset($particles[$this->fold($word)]) && ! isset($lowercase[$word])) {
                 $words[] = [$word, $relative];
             }
         }

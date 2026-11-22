@@ -32,7 +32,7 @@ class PersonNameRecognizer extends NameRecognizer
         $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*';
         $next = '(?:' . $word . '|' . self::PREFIXED_WORD . ')';
 
-        return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e)\s+' . $next . '|\s+' . $next . '){0,3}';
+        return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e)\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){0,3}';
     }
 
     protected function upperNamePattern(): ?string
@@ -44,7 +44,7 @@ class PersonNameRecognizer extends NameRecognizer
         $word = $part . '(?:' . self::HYPHEN . $part . ')*';
 
         return '/(?<![\p{L}\p{N}])' . $word
-            . '(?:\h+(?:DE(?:\h+L(?:A|OS|AS))?|DEL)\h+' . $word . '|\h+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
+            . '(?:\h+(?:DE(?:\h+L(?:A|OS|AS))?|DEL)\h+' . $word . '|\h+' . self::INITIAL . '\h+' . $word . '|\h+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     protected function namePattern(): string
@@ -57,7 +57,7 @@ class PersonNameRecognizer extends NameRecognizer
         $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
         return '/(?<![\p{L}\p{N}])' . self::NAME_WORD
-            . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
+            . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . self::INITIAL . '(?:\s+' . self::INITIAL . ')*\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     protected function firstNamesFile(): string
