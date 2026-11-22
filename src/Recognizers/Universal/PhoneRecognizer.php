@@ -3,6 +3,7 @@
 namespace EduLazaro\Laranon\Recognizers\Universal;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
+use EduLazaro\Laranon\Support\Separators;
 
 /**
  * International, country-prefixed phone numbers: a leading '+' or '00' followed
@@ -26,7 +27,7 @@ class PhoneRecognizer extends RegexRecognizer
             // digits with optional separators between any of them. Not preceded
             // by a word char or '+' (so it starts on a real boundary), and not
             // followed by another digit.
-            '/(?<![\w+])(?:\+|00)[\s.\-]?\d{1,3}(?:[\s.\-]?\d){6,13}(?!\d)/' => 1.0,
+            '/(?<![\w+])(?:\+|00)(?:' . Separators::ONE . '|\.)?\d{1,3}(?:(?:' . Separators::ONE . '|\.)?\d){6,13}(?!\d)/' => 1.0,
         ];
     }
 }

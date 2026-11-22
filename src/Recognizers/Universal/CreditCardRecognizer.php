@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Recognizers\Universal;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Separators;
 
 class CreditCardRecognizer extends RegexRecognizer
 {
@@ -15,13 +16,13 @@ class CreditCardRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<!\d)(?:\d[ \-]?){12,18}\d(?!\d)/' => 0.95,
+            '/(?<!\d)(?:\d' . Separators::ONE . '?){12,18}\d(?!\d)/' => 0.95,
         ];
     }
 
     protected function validate(string $value): bool
     {
-        $digits = preg_replace('/[\s\-]/', '', $value);
+        $digits = Separators::strip($value);
         $length = strlen($digits);
 
         // Known IIN leading digits (Visa, Mastercard, Amex/Diners, Discover)

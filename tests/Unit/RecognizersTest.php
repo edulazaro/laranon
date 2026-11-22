@@ -51,6 +51,27 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_no_break_spaces_and_typographic_dashes_separate_groups(): void
+    {
+        $nbsp = "\u{00A0}";
+
+        $cases = [
+            [new DniRecognizer(), "DNI 12345678\u{2013}Z", "12345678\u{2013}Z"],
+            [new DniRecognizer(), "DNI 12345678{$nbsp}Z", "12345678{$nbsp}Z"],
+            [new \EduLazaro\Laranon\Recognizers\Es\NieRecognizer(), "NIE X\u{2011}1234567\u{2011}L", "X\u{2011}1234567\u{2011}L"],
+            [new \EduLazaro\Laranon\Recognizers\Es\CccRecognizer(), "CCC 2100{$nbsp}0418{$nbsp}45{$nbsp}0200051332", "2100{$nbsp}0418{$nbsp}45{$nbsp}0200051332"],
+            [new IbanRecognizer(), "IBAN ES91{$nbsp}2100{$nbsp}0418{$nbsp}4502{$nbsp}0005{$nbsp}1332.", "ES91{$nbsp}2100{$nbsp}0418{$nbsp}4502{$nbsp}0005{$nbsp}1332"],
+            [new \EduLazaro\Laranon\Recognizers\Es\PlateRecognizer(), "matrícula 1234\u{2013}BCD", "1234\u{2013}BCD"],
+            [new \EduLazaro\Laranon\Recognizers\Es\PhoneRecognizer(), "tel. 600{$nbsp}123{$nbsp}123", "600{$nbsp}123{$nbsp}123"],
+        ];
+
+        foreach ($cases as [$recognizer, $text, $expected]) {
+            $values = array_map(fn ($span) => $span->value, $recognizer->detect($text));
+
+            $this->assertContains($expected, $values, $text);
+        }
+    }
+
     public function test_person_name_via_honorific_splits_into_word_spans(): void
     {
         // The honorific and the plain pattern both hit here; SpanResolver

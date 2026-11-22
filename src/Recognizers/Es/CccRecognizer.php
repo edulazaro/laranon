@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Recognizers\Es;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Separators;
 
 class CccRecognizer extends RegexRecognizer
 {
@@ -15,7 +16,7 @@ class CccRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<!\d)\d{4}[\s\-]?\d{4}[\s\-]?\d{2}[\s\-]?\d{10}(?!\d)/' => 0.95,
+            '/(?<!\d)\d{4}' . Separators::ONE . '?\d{4}' . Separators::ONE . '?\d{2}' . Separators::ONE . '?\d{10}(?!\d)/' => 0.95,
         ];
     }
 

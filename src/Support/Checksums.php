@@ -20,7 +20,7 @@ final class Checksums
      */
     public static function dni(string $value): bool
     {
-        $value = strtoupper(preg_replace('/[\s\-.]/', '', $value));
+        $value = strtoupper(Separators::strip($value, '.'));
 
         if (! preg_match('/^(\d{8})([A-Z])$/', $value, $m)) {
             return false;
@@ -35,7 +35,7 @@ final class Checksums
      */
     public static function nie(string $value): bool
     {
-        $value = strtoupper(preg_replace('/[\s\-.]/', '', $value));
+        $value = strtoupper(Separators::strip($value, '.'));
 
         if (! preg_match('/^([XYZ])(\d{7})([A-Z])$/', $value, $m)) {
             return false;
@@ -51,7 +51,7 @@ final class Checksums
      */
     public static function cif(string $value): bool
     {
-        $value = strtoupper(preg_replace('/[\s\-]/', '', $value));
+        $value = strtoupper(Separators::strip($value));
 
         if (! preg_match('/^([ABCDEFGHJKLMNPQRSUVW])(\d{7})([0-9A-J])$/', $value, $m)) {
             return false;
@@ -80,7 +80,7 @@ final class Checksums
      */
     public static function iban(string $value): bool
     {
-        $value = strtoupper(preg_replace('/\s/', '', $value));
+        $value = strtoupper(Separators::strip($value));
 
         if (! preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/', $value)) {
             return false;
@@ -102,7 +102,7 @@ final class Checksums
      */
     public static function luhn(string $value): bool
     {
-        $value = preg_replace('/[\s\-]/', '', $value);
+        $value = Separators::strip($value);
 
         if (! ctype_digit($value)) {
             return false;
@@ -135,7 +135,7 @@ final class Checksums
      */
     public static function nss(string $value): bool
     {
-        $value = preg_replace('/[\s\-\/]/', '', $value);
+        $value = Separators::strip($value, '/');
 
         if (! preg_match('/^(\d{2})(\d{8})(\d{2})$/', $value, $m)) {
             return false;
@@ -154,7 +154,7 @@ final class Checksums
      */
     public static function ccc(string $value): bool
     {
-        $value = preg_replace('/[\s\-]/', '', $value);
+        $value = Separators::strip($value);
 
         if (! preg_match('/^(\d{8})(\d)(\d)(\d{10})$/', $value, $m)) {
             return false;

@@ -3,6 +3,7 @@
 namespace EduLazaro\Laranon\Recognizers\Es;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
+use EduLazaro\Laranon\Support\Separators;
 
 /**
  * Modern Spanish plates: 4 digits + 3 consonants (no vowels, no Q/Ñ).
@@ -17,7 +18,7 @@ class PlateRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])\d{4}\s?-?\s?[BCDFGHJKLMNPRSTVWXYZ]{3}(?![\dA-Za-z])/' => 0.85,
+            '/(?<![\dA-Za-z])\d{4}' . Separators::GAP . '[BCDFGHJKLMNPRSTVWXYZ]{3}(?![\dA-Za-z])/' => 0.85,
         ];
     }
 }

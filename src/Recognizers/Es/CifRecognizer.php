@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Recognizers\Es;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Separators;
 
 class CifRecognizer extends RegexRecognizer
 {
@@ -15,7 +16,7 @@ class CifRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])[ABCDEFGHJKLMNPQRSUVW]\s?-?\s?\d{7}\s?-?\s?[0-9A-Ja-j](?![\dA-Za-z])/' => 1.0,
+            '/(?<![\dA-Za-z])[ABCDEFGHJKLMNPQRSUVW]' . Separators::GAP . '\d{7}' . Separators::GAP . '[0-9A-Ja-j](?![\dA-Za-z])/' => 1.0,
         ];
     }
 

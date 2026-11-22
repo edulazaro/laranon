@@ -3,6 +3,7 @@
 namespace EduLazaro\Laranon\Recognizers\Es;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
+use EduLazaro\Laranon\Support\Separators;
 
 class PhoneRecognizer extends RegexRecognizer
 {
@@ -20,9 +21,9 @@ class PhoneRecognizer extends RegexRecognizer
         // sentence) as long as it is not a decimal separator before more digits.
         return [
             // Bare mobiles (6xx/7xx).
-            '/(?<![\d+.])[67]\d{2}(?:[\s.\-]?\d){6}(?!\d)(?![.,]\d)/' => 0.8,
+            '/(?<![\d+.])[67]\d{2}(?:(?:' . Separators::ONE . '|\.)?\d){6}(?!\d)(?![.,]\d)/' => 0.8,
             // Bare landlines (9[1-8]x): more collision-prone with plain numbers.
-            '/(?<![\d+.])9[1-8]\d(?:[\s.\-]?\d){6}(?!\d)(?![.,]\d)/' => 0.6,
+            '/(?<![\d+.])9[1-8]\d(?:(?:' . Separators::ONE . '|\.)?\d){6}(?!\d)(?![.,]\d)/' => 0.6,
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Recognizers\Es;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Separators;
 
 class NieRecognizer extends RegexRecognizer
 {
@@ -16,7 +17,7 @@ class NieRecognizer extends RegexRecognizer
     {
         return [
             // X/Y/Z, 7 digits (optionally dotted, "1.234.567"), control letter.
-            '/(?<![\dA-Za-z])[XYZxyz]\s?-?\s?(?:\d\.\d{3}\.\d{3}|\d{7})\s?-?\s?[A-Za-z](?![\dA-Za-z])/' => 1.0,
+            '/(?<![\dA-Za-z])[XYZxyz]' . Separators::GAP . '(?:\d\.\d{3}\.\d{3}|\d{7})' . Separators::GAP . '[A-Za-z](?![\dA-Za-z])/' => 1.0,
         ];
     }
 

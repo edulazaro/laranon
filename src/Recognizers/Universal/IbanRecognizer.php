@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Recognizers\Universal;
 
 use EduLazaro\Laranon\Recognizers\RegexRecognizer;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Separators;
 use EduLazaro\Laranon\Support\Span;
 
 class IbanRecognizer extends RegexRecognizer
@@ -48,13 +49,13 @@ class IbanRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{2,4}){3,8}\b/' => 1.0,
+            '/\b[A-Z]{2}\d{2}(?:' . Separators::SPACE . '?[A-Z0-9]{2,4}){3,8}\b/' => 1.0,
         ];
     }
 
     protected function validate(string $value): bool
     {
-        $normalized = preg_replace('/\s/', '', $value);
+        $normalized = Separators::strip($value);
 
         return strlen($normalized) >= 15
             && strlen($normalized) <= 34
