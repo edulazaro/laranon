@@ -35,7 +35,8 @@ final class LanguageDetector
 
     /**
      * @param array<int, string> $languages the codes to choose from (es, en,
-     *                                      pt-BR, zh-Hans...), or every one
+     *                                      pt-BR, zh-Hans...), or every one;
+     *                                      "pt" takes pt-BR and pt-PT
      */
     public function __construct(array $languages = [], ?string $dataPath = null)
     {
@@ -44,11 +45,13 @@ final class LanguageDetector
         foreach (glob($directory . '/*.php') ?: [] as $file) {
             $code = basename($file, '.php');
 
-            if ($languages === [] || in_array($code, $languages, true)) {
+            $base = explode('-', $code)[0];
+
+            if ($languages === [] || in_array($code, $languages, true) || in_array($base, $languages, true)) {
                 $this->profiles[$code] = array_flip(require $file);
 
-                if (is_file($words = $directory . '/words/' . $code . '.php')) {
-                    $this->words[$code] = array_fill_keys(require $words, true);
+                if (! isset($this->words[$base]) && is_file($words = $directory . '/words/' . $base . '.php')) {
+                    $this->words[$base] = array_fill_keys(require $words, true);
                 }
             }
         }
@@ -62,6 +65,16 @@ final class LanguageDetector
     public static function create(array $languages = [], ?string $dataPath = null): self
     {
         return new self($languages, $dataPath);
+    }
+
+    /**
+     * Whether the text has as many n-grams as a profile ranks, the least the
+     * method needs: a shorter text misleads it between close languages ("Firma
+     * María López." scores Portuguese).
+     */
+    public function hasEnoughText(string $text): bool
+    {
+        return count($this->ngrams(mb_strtolower($text))) >= self::MAX_NGRAMS;
     }
 
     /**
@@ -85,7 +98,8 @@ final class LanguageDetector
      * How many of each language's most frequent grammatical words the text
      * has (data/languages/words), most first, for a text too short for its
      * n-grams: "Llamar al 612345678" has the "al" of Spanish and Catalan.
-     * Languages with none, or without a list, are left out.
+     * Keyed by the language without its variant ("pt"); languages with none,
+     * or without a list, are left out.
      *
      * @return array<string, int>
      */

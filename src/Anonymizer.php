@@ -390,14 +390,11 @@ class Anonymizer
      * (names, phones with no country prefix...). The ones set with
      * language(), if any. Otherwise every language found in its paragraphs,
      * so a Spanish document with a passage pasted in English is read in
-     * both: a paragraph's language is the clear winner of its n-grams among
-     * the languages with a pack, or else the one with most of its
-     * grammatical words, the way a short line is told ("Llamar al ..." is
-     * Spanish or Catalan). With nothing to go by (digits alone), the
-     * language last told clearly in this map (a conversation, a case), if
-     * any. And all of them when none of that gives one, or the whole text is
-     * clearly in a language with no pack, so a name is never lost to a wrong
-     * guess.
+     * both (see paragraphLanguages()). With nothing to go by (digits alone,
+     * a bare name), the language last found alone in this map (a
+     * conversation, a case), if any. And all of them when none of that
+     * gives one, or the whole text is clearly in a language with no pack, so
+     * a name is never lost to a wrong guess.
      *
      * @return array<int, string>
      */
@@ -415,7 +412,8 @@ class Anonymizer
             return $chosen !== [] ? $chosen : $available;
         }
 
-        $clear = $this->clearLanguage(($this->detector ??= LanguageDetector::create())->scores($text));
+        $this->detector ??= LanguageDetector::create();
+        $clear = $this->detector->hasEnoughText($text) ? $this->clearLanguage($this->detector->scores($text)) : null;
 
         if ($clear !== null && ! in_array($clear, $available, true)) {
             return $available;
@@ -430,8 +428,8 @@ class Anonymizer
         $found = array_values(array_unique($found));
 
         if ($found !== []) {
-            if ($clear !== null && $found === [$clear]) {
-                $map->rememberLanguage($clear);
+            if (count($found) === 1) {
+                $map->rememberLanguage($found[0]);
             }
 
             return $found;
@@ -462,13 +460,14 @@ class Anonymizer
     }
 
     /**
-     * The languages of one paragraph, among the $available ones, from its
-     * n-grams and its grammatical words. When its n-grams have a clear
-     * winner, that one, and also the language with most grammatical words if
-     * it is another: a short line misleads the n-grams ("DNI ..., también
-     * escrito ..." scores Italian), and reading it in both loses nothing.
-     * When the n-grams tie, the language with most grammatical words, or the
-     * tied ones if it has none. None when it has no letters.
+     * The languages of one paragraph, among the $available ones. A paragraph
+     * too short for its n-grams (see LanguageDetector::hasEnoughText()) is
+     * told by its grammatical words alone ("Llamar al ..." is Spanish or
+     * Catalan), and by nothing when it has none. A longer one, by the clear
+     * winner of its n-grams, and also the language with most grammatical
+     * words if it is another, since reading it in both loses nothing; when
+     * its n-grams tie, by the language with most grammatical words, or the
+     * tied ones if it has none.
      *
      * @param array<int, string> $available
      * @return array<int, string>
@@ -476,16 +475,20 @@ class Anonymizer
     protected function paragraphLanguages(string $paragraph, array $available): array
     {
         $detector = $this->packDetector ??= LanguageDetector::create($available);
-        $scores = $detector->scores($paragraph);
-
-        if ($scores === []) {
-            return [];
-        }
-
-        $best = reset($scores);
-        $tied = array_keys(array_filter($scores, fn (float $score) => $best - $score <= LanguageDetector::THRESHOLD));
         $words = $detector->wordCounts($paragraph);
         $most = $words === [] ? [] : array_keys(array_filter($words, fn (int $count) => $count === reset($words)));
+
+        if (! $detector->hasEnoughText($paragraph)) {
+            return $most;
+        }
+
+        $scores = $detector->scores($paragraph);
+
+        $best = reset($scores);
+        $tied = array_values(array_unique(array_map(
+            fn (string $code) => explode('-', $code)[0],
+            array_keys(array_filter($scores, fn (float $score) => $best - $score <= LanguageDetector::THRESHOLD)),
+        )));
 
         if (count($tied) === 1) {
             return array_values(array_unique([...$tied, ...$most]));

@@ -164,9 +164,10 @@ class AnonymizerTest extends TestCase
 
     public function test_a_text_in_a_language_with_no_pack_is_read_in_all(): void
     {
-        $german = 'Der Beklagte hat die Forderung bestritten und beantragt, die Klage abzuweisen, da der Vertrag nicht wirksam zustande gekommen sei.';
+        $polish = 'Pozwany zakwestionował roszczenie i wniósł o oddalenie powództwa w całości, ponieważ umowa nie została skutecznie zawarta, '
+            . 'a powód nie wykazał, że spełnił wszystkie warunki przewidziane w umowie oraz w przepisach prawa cywilnego obowiązujących w dniu jej zawarcia.';
 
-        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor($german, new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor($polish, new TokenMap()));
     }
 
     public function test_a_french_text_is_read_with_the_french_pack(): void
@@ -291,17 +292,20 @@ class AnonymizerTest extends TestCase
 
     public function test_only_accepts_every_type_a_recognizer_emits(): void
     {
-        $surnames = $this->anonymizer()->only('surname')->anonymize('Firma María López.');
+        $surnames = $this->anonymizer()->only('surname')->anonymize('Firma el demandante María López y su abogado.');
 
         $clients = $this->anonymizer()->only('client')
             ->withEntities([['value' => 'Initech SL', 'type' => 'client']])
             ->anonymize('Contra Initech SL.');
 
-        $this->assertSame('Firma María «AP_1».', $surnames->text);
+        $this->assertSame('Firma el demandante María «AP_1» y su abogado.', $surnames->text);
         $this->assertSame('Contra «CLIENT_1».', $clients->text);
 
         // A typo in except() only anonymizes more, so it does not throw.
-        $this->assertSame('Firma «PER_F_1» «AP_1».', $this->anonymizer()->except('persona')->anonymize('Firma María López.')->text);
+        $this->assertSame(
+            'Firma el demandante «PER_F_1» «AP_1» y su abogado.',
+            $this->anonymizer()->except('persona')->anonymize('Firma el demandante María López y su abogado.')->text,
+        );
     }
 
     public function test_redact_strategy_is_one_way(): void
