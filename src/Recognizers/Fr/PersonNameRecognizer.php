@@ -128,7 +128,7 @@ class PersonNameRecognizer extends NameRecognizer
         }
 
         foreach ($given as $i => [$word, $relative]) {
-            $gender = $i === 0 ? ($this->genders()[$this->parts($word)[0]] ?? null) : null;
+            $gender = $i === 0 ? $this->genderOf($this->parts($word)[0]) : null;
             $spans[] = new Span($offset + $relative, strlen($word), $i === 0 ? 'person' : 'surname', $word, 0.9, $gender);
         }
 

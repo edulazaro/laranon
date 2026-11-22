@@ -85,6 +85,17 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     /** @var array<string, string>|null */
     protected ?array $genders = null;
 
+    /** @var array<string, true>|null the articles, honorifics and function words, never name words */
+    protected ?array $blocked = null;
+
+    /**
+     * The lists of the other languages (their frequent names and surnames,
+     * their genders), loaded once for every recognizer.
+     *
+     * @var array<string, array<string, true|string>>
+     */
+    protected static array $sharedLists = [];
+
     public function __construct(protected ?string $dataPath = null)
     {
     }
@@ -587,7 +598,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
             : (count($words) === 1 ? $loneWordType : 'person');
 
         foreach ($words as [$word, $relative]) {
-            $gender = $type === 'person' ? ($this->genders()[$this->parts($word)[0]] ?? null) : null;
+            $gender = $type === 'person' ? $this->genderOf($this->parts($word)[0]) : null;
 
             $spans[] = new Span($offset + $relative, strlen($word), $type, $word, $confidence, $gender);
 
@@ -804,7 +815,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
         }
 
         foreach ($this->parts($word) as $part) {
-            if (! isset($this->firstNames()[$part])) {
+            if (! $this->isGivenName($part)) {
                 return false;
             }
         }
@@ -825,11 +836,78 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     protected function isSurname(string $word): bool
     {
         foreach ($this->parts($word) as $part) {
-            if (isset($this->lastNames()[$part])) {
+            if (isset($this->lastNames()[$part]) || $this->inForeignLists('surnames_frequent.php', $part)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Whether a folded word is a given name: one of this language's, or a
+     * frequent one of another language's (borne by 1 in 100,000 people of its
+     * source), since names are multicultural: "Giuseppe Rossi" in a Spanish
+     * text, "Juan García" in an English one. A rare name of another language
+     * that is a word here ("General" in the US records) is not one.
+     */
+    protected function isGivenName(string $part): bool
+    {
+        return isset($this->firstNames()[$part]) || $this->inForeignLists('names_frequent.php', $part);
+    }
+
+    /**
+     * The gender of a folded given name: this language's, or for a name it
+     * does not know, the one of the language whose name it is.
+     */
+    protected function genderOf(string $part): ?string
+    {
+        if (isset($this->firstNames()[$part])) {
+            return $this->genders()[$part] ?? null;
+        }
+
+        foreach ($this->foreignLists('names_gender.php') as $genders) {
+            if (isset($genders[$part])) {
+                return $genders[$part];
+            }
+        }
+
+        return null;
+    }
+
+    protected function inForeignLists(string $file, string $part): bool
+    {
+        if (isset(($this->blocked ??= array_fill_keys([...$this->articleBlocklist(), ...$this->functionWords()], true))[$part])) {
+            return false;
+        }
+
+        foreach ($this->foreignLists($file) as $list) {
+            if (isset($list[$part])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The $file of every other language's data directory (es/, en/, fr/...),
+     * not this recognizer's own, which its full lists already cover.
+     *
+     * @return array<int, array<string, true|string>>
+     */
+    protected function foreignLists(string $file): array
+    {
+        $data = $this->dataPath ?? dirname(__DIR__, 2) . '/data';
+        $own = $data . '/' . dirname($this->firstNamesFile());
+        $lists = [];
+
+        foreach (glob($data . '/*/' . $file) ?: [] as $path) {
+            if (dirname($path) !== $own) {
+                $lists[] = static::$sharedLists[$path] ??= ($file === 'names_gender.php' ? require $path : array_fill_keys(require $path, true));
+            }
+        }
+
+        return $lists;
     }
 }

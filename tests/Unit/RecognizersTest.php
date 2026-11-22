@@ -517,6 +517,20 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_names_are_multicultural_but_a_rare_foreign_name_is_not_a_word(): void
+    {
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $es = new PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        // A frequent Spanish name in an English text, with its gender.
+        $this->assertSame(['Begoña', 'Arrizabalaga'], $values($en, 'The witness Begoña Arrizabalaga confirmed it.'));
+        $this->assertSame('f', SpanResolver::resolve($en->detect('The witness Begoña Arrizabalaga confirmed it.'))[0]->gender);
+
+        // "General" is a name in the US records, borne by too few to be one in a Spanish text.
+        $this->assertSame([], $values($es, 'La Dirección General de Seguridad Jurídica.'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

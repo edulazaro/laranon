@@ -217,6 +217,8 @@ Every pack (`es`, `en`, `fr`, `ca`) is available, and each text is read with the
 
 The language is told per paragraph, so a Spanish document with a passage pasted in English is read in both. A paragraph long enough is told by its letter n-grams (see [Language detection](#language-detection)); a short one, by its grammatical words ("Llamar al 612345678" has the "al" of Spanish and Catalan, and both read Spanish phones). With nothing to go by, such as digits alone, the language last told clearly in the scope or the session is used, if any. And when none of that gives a language, or the text is clearly in a language with no pack, every pack reads it, so a name is never lost to a wrong guess. A session (`Anonymizer::create()`) tells it once for all the strings it is given, so a short message is read in the conversation's language.
 
+Names are multicultural, whatever the language: each pack's recognizer knows its own full lists and the frequent names and surnames of the others, those borne by at least 1 in 100,000 people of their source (born since 1945 in the birth registers). So "Begoña Arrizabalaga" is found in an English text and "Giuseppe Rossi" in a Spanish one, while a name too rare abroad to tell from a word is not taken: the US records list "General" as a given name, and "Dirección General de Seguridad" is no person.
+
 When you already know the language, set it:
 
 ```php
@@ -293,6 +295,8 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | `data/en/surnames.php` | ~162,000 | US Census Bureau, 2010 release, count >= 100 |
 | `data/en/names_ambiguous.php` | 31 | hand-curated (flower, gem and virtue names) |
 | `data/ca/names_ambiguous.php` | 13 | hand-curated (Marian and virtue names: Llum, Neus, Roser), with the Spanish list |
+| `data/es/names_frequent.php`, `data/en/names_frequent.php`, `data/fr/names_frequent.php` | ~3,500 / ~5,000 / ~3,900 | the given names borne by at least 1 in 100,000 people of the source (INE 2025; SSA and INSEE births since 1945), used by the other languages' recognizers |
+| `data/fr/surnames_frequent.php` | ~14,500 | the same for INSEE surnames (births 1941-2000) |
 | `data/fr/names.php` | ~22,900 | INSEE, Fichier des prénoms, births in France 1900-2024: every word of a name borne by 20 people or more |
 | `data/fr/surnames.php` | ~210,000 | INSEE, Fichier des noms, births in France 1891-2000, surnames given 30 times or more |
 | `data/fr/names_gender.php` | ~21,300 | INSEE, by first given name: `f` or `m` when 95% or more share it; ambiguous names (Dominique, Claude) left out |
