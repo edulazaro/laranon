@@ -239,6 +239,23 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Luis', 'Fernando', 'Castro'], array_map(fn ($span) => $span->value, $spans));
     }
 
+    public function test_a_name_never_crosses_a_line_break(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        // A heading, a role or a place on the next line ends the name.
+        $this->assertSame(['Raquel', 'Blázquez', 'Martín'], $values("D.ª Raquel Blázquez Martín\nEn Madrid, a 21 de julio de 2025."));
+        $this->assertSame(['Jorge', 'Rodriguez', 'Simon', 'Ana', 'Ruiz'], $values("Procurador/a: Jorge Rodriguez Simon\nAbogado/a: Ana Ruiz"));
+        $this->assertSame(['Ana', 'Pérez'], $values("Firmado: Ana Pérez\nLey de Enjuiciamiento Civil"));
+
+        // A name can start on the line that ends the previous one.
+        $this->assertSame(['Juan', 'Pérez', 'Ana', 'López'], $values("Juan Pérez\nAna López"));
+
+        // A name a PDF wraps keeps only its first line.
+        $this->assertSame(['Juan', 'García'], $values("Juan García\nLópez Ruiz comparece."));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

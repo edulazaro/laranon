@@ -55,6 +55,16 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_words_on_the_line_after_a_name_stay_in_cleartext(): void
+    {
+        $text = "D.ª Raquel Blázquez Martín\nEn Madrid, a 21 de julio.\nProcurador/a: Jorge Rodriguez Simon\nAbogado/a: Ana Ruiz\nEn el recurso.";
+
+        $this->assertSame(
+            "D.ª Raquel «AP_1» «AP_2»\nEn Madrid, a 21 de julio.\nProcurador/a: Jorge «AP_3» «AP_4»\nAbogado/a: Ana «AP_5»\nEn el recurso.",
+            $this->anonymizer()->except('person')->anonymize($text)->text,
+        );
+    }
+
     public function test_only_restricts_detection(): void
     {
         $result = $this->anonymizer()

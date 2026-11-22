@@ -187,6 +187,8 @@ abstract class NameRecognizer implements Recognizer
 
             foreach ($matches[1] as [$value, $offset]) {
                 if ($value !== '') {
+                    $value = substr($value, 0, $this->lineBoundedLength($value));
+
                     array_push($spans, ...$this->splitNameWords($value, $offset, 0.95, $honorific['loneWordType']));
                 }
             }
@@ -238,6 +240,8 @@ abstract class NameRecognizer implements Recognizer
      */
     protected function resolveInitialsCandidate(string $value, int $offset): array
     {
+        $value = substr($value, 0, $this->lineBoundedLength($value));
+
         preg_match_all('/\S+/u', $value, $matches);
         $words = $matches[0];
 
@@ -311,6 +315,21 @@ abstract class NameRecognizer implements Recognizer
             return [];
         }
 
+        // Past a line break that ends the name, the rest is a candidate of
+        // its own: a name can still start there ("Juan Pérez⏎Ana López").
+        $rest = substr($value, $tokens[$start][1]);
+        $restOffset = $offset + $tokens[$start][1];
+        $keep = $this->lineBoundedLength($rest);
+
+        if ($keep < strlen($rest)) {
+            preg_match('/\S/u', $rest, $next, PREG_OFFSET_CAPTURE, $keep);
+
+            return [
+                ...$this->resolveCandidate(substr($rest, 0, $keep), $restOffset),
+                ...$this->resolveCandidate(substr($rest, $next[0][1]), $restOffset + $next[0][1]),
+            ];
+        }
+
         $first = $this->parts($tokens[$start][0])[0];
         $lastToken = $tokens[array_key_last($tokens)];
         $surnameConfirmed = $this->isSurname($lastToken[0]);
@@ -326,6 +345,19 @@ abstract class NameRecognizer implements Recognizer
         $trimmed = substr($value, $relativeStart, $relativeEnd - $relativeStart);
 
         return $this->splitNameWords($trimmed, $offset + $relativeStart, $surnameConfirmed ? 0.9 : 0.85);
+    }
+
+    /**
+     * How much of a candidate is still one name, in bytes: up to its first
+     * line break. What follows a name on the next line is a heading, a role
+     * or a place far more often than the rest of the name ("Martín⏎En
+     * Madrid", "Simon⏎Abogado"), and the surname lists cannot tell them
+     * apart: the US census lists Abogado, Madrid and Ley as surnames. A name
+     * a PDF wraps keeps only its first line.
+     */
+    protected function lineBoundedLength(string $value): int
+    {
+        return preg_match('/\h*\R/u', $value, $match, PREG_OFFSET_CAPTURE) === 1 ? $match[0][1] : strlen($value);
     }
 
     /**
