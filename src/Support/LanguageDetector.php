@@ -46,6 +46,16 @@ final class LanguageDetector
     }
 
     /**
+     * A detector that chooses among $languages, or among every language.
+     *
+     * @param array<int, string> $languages
+     */
+    public static function create(array $languages = [], ?string $dataPath = null): self
+    {
+        return new self($languages, $dataPath);
+    }
+
+    /**
      * The language of the text, or null when it cannot tell: no letters, or
      * a runner-up within THRESHOLD of the best score.
      */

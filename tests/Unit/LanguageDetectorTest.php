@@ -10,7 +10,7 @@ class LanguageDetectorTest extends TestCase
     public function test_it_scores_exactly_like_patrickschur_language_detection(): void
     {
         // Reference scores from patrickschur/language-detection v5.3.1, all languages.
-        $detector = new LanguageDetector();
+        $detector = LanguageDetector::create();
 
         $this->assertSame(
             ['es' => 0.5136273864384464, 'gl' => 0.45992100065832786, 'pt-BR' => 0.4170901909150757],
@@ -27,7 +27,7 @@ class LanguageDetectorTest extends TestCase
 
     public function test_it_detects_the_language_or_says_it_cannot_tell(): void
     {
-        $detector = new LanguageDetector();
+        $detector = LanguageDetector::create();
 
         $this->assertSame('en', $detector->detect('The defendant, John Smith, appeared before the court and stated that he had not received the notice of the hearing.'));
         $this->assertSame('fr', $detector->detect("Le demandeur, M. Jean Dupont, demeurant à Paris, expose que la société défenderesse n'a pas respecté le contrat."));
@@ -42,7 +42,7 @@ class LanguageDetectorTest extends TestCase
 
     public function test_it_chooses_among_the_languages_it_is_given(): void
     {
-        $detector = new LanguageDetector(['es', 'en', 'fr']);
+        $detector = LanguageDetector::create(['es', 'en', 'fr']);
 
         $this->assertSame(['es', 'fr', 'en'], array_keys($detector->scores('Comparece D. Juan García López en nombre de la entidad demandada y dice que interpone recurso.')));
     }

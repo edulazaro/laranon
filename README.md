@@ -292,8 +292,8 @@ Extend them or point `data_path` in the config to your own directory with the sa
 ```php
 use EduLazaro\Laranon\Support\LanguageDetector;
 
-(new LanguageDetector())->detect('Le demandeur expose que la société défenderesse...'); // "fr"
-(new LanguageDetector(['es', 'en', 'fr']))->scores($text);                          // ['es' => 0.51, 'fr' => ...]
+LanguageDetector::create()->detect('Le demandeur expose que la société défenderesse...'); // "fr"
+LanguageDetector::create(['es', 'en', 'fr'])->scores($text);                          // ['es' => 0.51, 'fr' => ...]
 ```
 
 `detect()` returns null when it cannot tell: a text with no letters, or a runner-up within 0.025 of the best score (a word or two, a mixed text, pt-BR against pt-PT).
