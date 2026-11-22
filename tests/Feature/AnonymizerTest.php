@@ -213,6 +213,47 @@ class AnonymizerTest extends TestCase
         $this->assertStringContainsString('«ENT_47»', $second->text);
     }
 
+    public function test_a_pinned_id_never_takes_a_counter_token_of_another_value(): void
+    {
+        $scoped = $this->anonymizer()->scope('exp-pinned');
+
+        // The counter hands «ENT_1» to Globex first...
+        $scoped->withEntities([['value' => 'Globex Corp', 'type' => 'entity']])
+            ->anonymize('Demanda contra Globex Corp.');
+
+        // ...so Initech, pinned to id 1, cannot take it and gets the next one.
+        $result = $scoped->withStableEntities([['value' => 'Initech SL', 'type' => 'entity', 'id' => 1]])
+            ->anonymize('Contesta Initech SL.');
+
+        $this->assertSame('Contesta «ENT_2».', $result->text);
+        $this->assertSame('Contesta Initech SL.', $result->restore($result->text));
+        $this->assertSame('Globex Corp e Initech SL', $scoped->restore('«ENT_1» e «ENT_2»'));
+    }
+
+    public function test_a_pinned_id_reused_for_another_value_falls_back_to_a_regular_token(): void
+    {
+        $scoped = $this->anonymizer()->scope('exp-renamed');
+
+        $scoped->withStableEntities([['value' => 'Initech SL', 'type' => 'entity', 'id' => 7]])
+            ->anonymize('Contesta Initech SL.');
+
+        $renamed = $scoped->withStableEntities([['value' => 'Initech Group SA', 'type' => 'entity', 'id' => 7]])
+            ->anonymize('Contesta Initech Group SA.');
+
+        $this->assertStringNotContainsString('«ENT_7»', $renamed->text);
+        $this->assertSame('Contesta Initech Group SA.', $renamed->restore($renamed->text));
+        $this->assertSame('Initech SL', $scoped->restore('«ENT_7»'));
+    }
+
+    public function test_stable_entities_apply_in_a_session(): void
+    {
+        $session = $this->anonymizer()
+            ->withStableEntities([['value' => 'Initech SL', 'type' => 'entity', 'id' => 47]])
+            ->newSession();
+
+        $this->assertSame('Contesta «ENT_47».', $session->anonymize('Contesta Initech SL.'));
+    }
+
     public function test_1x_constructor_calls_still_work(): void
     {
         $engine = new Anonymizer(

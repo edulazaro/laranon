@@ -173,6 +173,8 @@ Laranon::withStableEntities([
 ])->anonymize($text); // always «ENT_{$client->id}»
 ```
 
+If that token already belongs to another value in the map (the counter gave `«ENT_1»` to another value in an earlier call of the same scope, or the id comes back for a renamed company), the value gets a regular token instead: restoring the right text wins over keeping the pin. Stable entities work the same in a session (`->withStableEntities([...])->newSession()`).
+
 Do NOT use this for person names: a full-name pinned token would conflict with per-word tokenization and silently assert an identity that a bare later mention cannot confirm. Person names are best left to the detector.
 
 ### Filtering

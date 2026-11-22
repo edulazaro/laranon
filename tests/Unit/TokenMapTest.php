@@ -87,6 +87,19 @@ class TokenMapTest extends TestCase
         $this->assertSame('Vidal', $map->replacementFor(new Span(0, 5, 'surname', 'López'), $always, 'López. Lo firma el Rey.'));
     }
 
+    public function test_a_pinned_id_taken_by_another_value_gets_a_regular_token(): void
+    {
+        $strategy = new TokenStrategy('«%s_%d»', ['entity' => 'ENT']);
+        $map = new TokenMap();
+
+        $this->assertSame('«ENT_1»', $map->replacementFor(new Span(0, 11, 'entity', 'Globex Corp'), $strategy));
+
+        $map->preset('entity', 'Initech SL', $strategy, 1);
+
+        $this->assertSame('«ENT_2»', $map->replacementFor(new Span(0, 10, 'entity', 'Initech SL'), $strategy));
+        $this->assertSame('Globex Corp, Initech SL', $map->restore('«ENT_1», «ENT_2»'));
+    }
+
     public function test_replacements_never_repeat_across_different_values(): void
     {
         // A degenerate strategy that always emits the same surrogate: the map

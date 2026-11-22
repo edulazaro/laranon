@@ -100,8 +100,13 @@ final class TokenMap
     /**
      * Pin the replacement for a value to a stable id (e.g. a client's
      * database id) instead of the auto-incrementing counter, reusing the
-     * same strategy formatting that organically-detected spans get. A no-op
-     * if the value already resolved to something in this map.
+     * same strategy formatting that organically-detected spans get. If that
+     * replacement already belongs to another value in this map (the counter
+     * gave «ENT_1» to another value in an earlier call of the same scope, or
+     * the same id comes back for a renamed record), the value gets a regular
+     * replacement instead: restoring the right text matters more than
+     * keeping the pin. A no-op if the value already resolved to something in
+     * this map.
      */
     public function preset(string $type, string $value, Strategy $strategy, int $id): void
     {
@@ -111,7 +116,15 @@ final class TokenMap
             return;
         }
 
-        $replacement = $strategy->replacement(new Span(0, strlen($value), $type, $value), $id);
+        $span = new Span(0, strlen($value), $type, $value);
+
+        $replacement = $strategy->replacement($span, $id);
+
+        if ($strategy->reversible() && ($replacement === $value || $this->isTaken($replacement, $value))) {
+            $this->replacementFor($span, $strategy);
+
+            return;
+        }
 
         $this->index[$key] = $replacement;
 

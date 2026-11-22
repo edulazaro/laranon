@@ -189,15 +189,20 @@ class Anonymizer
     {
         $map = $this->loadMap();
 
-        foreach ($this->presets as $preset) {
-            $map->preset($preset['type'], $preset['value'], $this->resolveStrategy(), $preset['id']);
-        }
+        $this->applyPresets($map);
 
         $text = $this->anonymizeString($text, $map);
 
         $this->persistMap($map);
 
         return new AnonymizedText($text, $map);
+    }
+
+    protected function applyPresets(TokenMap $map): void
+    {
+        foreach ($this->presets as $preset) {
+            $map->preset($preset['type'], $preset['value'], $this->resolveStrategy(), $preset['id']);
+        }
     }
 
     /**
@@ -234,7 +239,11 @@ class Anonymizer
      */
     public function newSession(): AnonymizerSession
     {
-        return new AnonymizerSession($this, new TokenMap());
+        $map = new TokenMap();
+
+        $this->applyPresets($map);
+
+        return new AnonymizerSession($this, $map);
     }
 
     /**
