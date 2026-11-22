@@ -17,8 +17,9 @@ class PersonNameRecognizer extends NameRecognizer
     protected function surnameHonorificPattern(): ?string
     {
         // Sr./Sra./Dr./Ldo... introduce a surname (Sr. García, Dra. Vidal), in
-        // any case (SR. GARCÍA).
-        return '/(?<!\p{L})(?i:Srta|Sra|Sr|Dra|Dr|Lcdo|Lcda|Ldo|Lda)\.?\s+(' . $this->honorificName() . ')/u';
+        // any case (SR. GARCÍA), also one that opens with a particle (Sr. de
+        // la Fuente).
+        return '/(?<!\p{L})(?i:Srta|Sra|Sr|Dra|Dr|Lcdo|Lcda|Ldo|Lda)\.?\s+((?:(?i:' . self::PARTICLES . ')\s+)?' . $this->honorificName() . ')/u';
     }
 
     /**
@@ -29,8 +30,9 @@ class PersonNameRecognizer extends NameRecognizer
     protected function honorificName(): string
     {
         $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*';
+        $next = '(?:' . $word . '|' . self::PREFIXED_WORD . ')';
 
-        return $word . '(?:\s+(?i:de(?:\s+l(?:a|os|as))?|del|y|e|la)\s+' . $word . '|\s+' . $word . '){0,3}';
+        return $word . '(?:\s+(?i:' . self::PARTICLES . '|y|e)\s+' . $next . '|\s+' . $next . '){0,3}';
     }
 
     protected function upperNamePattern(): ?string
@@ -52,10 +54,10 @@ class PersonNameRecognizer extends NameRecognizer
         // is far more often two people in a list than one person's compound
         // surname ("Ortega y Gasset"), and merging them into a single span
         // would misattribute PII across two different people.
-        $word = self::NAME_WORD;
+        $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
-        return '/(?<![\p{L}\p{N}])' . $word
-            . '(?:\s+(?:de(?:\s+l(?:a|os|as))?|del|la)\s+' . $word . '|\s+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
+        return '/(?<![\p{L}\p{N}])' . self::NAME_WORD
+            . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     protected function firstNamesFile(): string

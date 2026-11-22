@@ -30,6 +30,32 @@ abstract class NameRecognizer implements Recognizer
      */
     protected const NAME_WORD = '(?:\p{Lu}[\p{Ll}\'’]+)+(?:[-\x{2010}\x{2011}](?:\p{Lu}[\p{Ll}\'’]+)+)*';
 
+    /**
+     * A name word opened by a lowercase prefix: d'Ors, dell'Acqua, al-Assad,
+     * el-Sisi. Never the first word of a name.
+     */
+    protected const PREFIXED_WORD = '(?:(?:d|l|dell|dall)[\'’]|(?:al|el)-)' . self::NAME_WORD;
+
+    /**
+     * Lowercase particles between the words of a name, for patterns with the
+     * u modifier: Spanish (de la Cruz), Portuguese (da Silva, dos Santos),
+     * Italian (di Stefano, della Rovere), French (du Pont, le Pen), Dutch and
+     * German (van der Waals, von Braun) and Arabic or Hebrew (bin Salman, ibn
+     * Battuta, ben Gurion). They stay in cleartext. "al" and "el" alone are
+     * left out: "García al Juzgado" is a sentence, not a name.
+     */
+    protected const PARTICLES = 'della|dello|delle|degli|dei|del|des|de(?:\s+l(?:a|os|as))?|du|das|da|dos|do|di|la|le|lo'
+        . '|van(?:\s+de[rn]?)?|von(?:\s+der)?|der|den|ten|ter|bint|bin|ibn|ben';
+
+    /**
+     * The single words of PARTICLES, kept in cleartext when written in
+     * lowercase. "Ben" or "Van" with a capital stay name words.
+     */
+    protected const PARTICLE_WORDS = [
+        'della', 'dello', 'delle', 'degli', 'dei', 'des', 'du', 'das', 'da', 'dos', 'do', 'di', 'le', 'lo',
+        'van', 'von', 'der', 'den', 'ten', 'ter', 'bint', 'bin', 'ibn', 'ben',
+    ];
+
     /** @var array<string, true>|null */
     protected ?array $firstNames = null;
 
@@ -195,7 +221,7 @@ abstract class NameRecognizer implements Recognizer
         $start = 0;
         $end = count($tokens) - 1;
 
-        while ($start < $end && ! isset($this->firstNames()[$this->parts($tokens[$start][0])[0]])) {
+        while ($start < $end && ! $this->opensName($tokens[$start][0])) {
             $start++;
         }
 
@@ -232,7 +258,7 @@ abstract class NameRecognizer implements Recognizer
 
         $start = 0;
 
-        while (count($tokens) - $start >= 2 && ! isset($this->firstNames()[$this->parts($tokens[$start][0])[0]])) {
+        while (count($tokens) - $start >= 2 && ! $this->opensName($tokens[$start][0])) {
             $start++;
         }
 
@@ -283,11 +309,12 @@ abstract class NameRecognizer implements Recognizer
         preg_match_all('/\S+/u', $value, $matches, PREG_OFFSET_CAPTURE);
 
         $particles = array_fill_keys($this->articleBlocklist(), true);
+        $lowercase = array_fill_keys(self::PARTICLE_WORDS, true);
 
         $words = [];
 
         foreach ($matches[0] as [$word, $relative]) {
-            if (! isset($particles[$this->fold($word)])) {
+            if (! isset($particles[$this->fold($word)]) && ! isset($lowercase[$word])) {
                 $words[] = [$word, $relative];
             }
         }
@@ -413,6 +440,16 @@ abstract class NameRecognizer implements Recognizer
     protected function parts(string $word): array
     {
         return array_map(fn (string $part) => $this->fold($part), preg_split('/' . self::HYPHEN . '/u', $word));
+    }
+
+    /**
+     * Whether a word can open a name: a known given name written with a
+     * capital. A lowercase particle never does, even when the census lists
+     * it as a given name ("von" in "Wernher von Braun").
+     */
+    protected function opensName(string $word): bool
+    {
+        return preg_match('/^\p{Lu}/u', $word) === 1 && isset($this->firstNames()[$this->parts($word)[0]]);
     }
 
     protected function isSurname(string $word): bool

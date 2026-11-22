@@ -144,6 +144,26 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values($es, 'Pagó con PayPal y escribió por WhatsApp a YouTube.'));
     }
 
+    public function test_particles_inside_a_name_stay_in_cleartext(): void
+    {
+        $es = new PersonNameRecognizer();
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame(['Vincent', 'Gogh'], $values($en, 'A painting by Vincent van Gogh.'));
+        $this->assertSame(['Johannes', 'Waals'], $values($es, 'Physicist Johannes van der Waals.'));
+        $this->assertSame(['Gogh'], $values($en, 'Mr. van Gogh replied.'));
+        $this->assertSame(['Alessandro', 'Stefano'], $values($es, 'Firma Alessandro di Stefano.'));
+        $this->assertSame(['Maria', 'Silva'], $values($es, 'Comparece Maria da Silva.'));
+        $this->assertSame(['Eugeni', "d'Ors"], $values($es, "Escribió Eugeni d'Ors."));
+        $this->assertSame(['Mohamed', 'el-Amrani'], $values($es, 'Comparece Mohamed el-Amrani.'));
+        $this->assertSame(['Fuente'], $values($es, 'Lo atiende el Sr. de la Fuente.'));
+
+        // "al" alone belongs to the sentence, and a particle never opens a name.
+        $this->assertSame(['Juan', 'García'], $values($es, 'Remitido por Juan García al Juzgado.'));
+        $this->assertSame([], $values($en, 'Rocket by Wernher von Braun.'));
+    }
+
     public function test_a_hyphenated_surname_is_one_surname_word(): void
     {
         $cases = [
