@@ -4,6 +4,7 @@ namespace EduLazaro\Laranon\Tests\Feature;
 
 use DateTimeImmutable;
 use EduLazaro\Laranon\Integrations\ScrubLogsProcessor;
+use EduLazaro\Laranon\Support\JsonScrubber;
 use EduLazaro\Laranon\Tests\TestCase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -56,6 +57,22 @@ class IntegrationsTest extends TestCase
         Http::scrubPii()->withBody('Llamar al 612345678', 'text/plain')->post('https://api.example.com/notes');
 
         $this->assertSame('Llamar al [TEL]', $sent);
+    }
+
+    public function test_json_scrubbing_covers_keys_and_never_changes_a_number(): void
+    {
+        $redact = fn (string $text) => $this->app->make('laranon')->strategy('redact')->anonymize($text)->text;
+
+        // A key is scrubbed like a value.
+        $this->assertSame(
+            '{"[EMAIL]":{"name":"[PER] [AP]","phone":"[TEL]"}}',
+            JsonScrubber::scrub('{"juan.garcia@example.com":{"name":"Juan García","phone":612345678}}', $redact),
+        );
+
+        // An integer PHP cannot hold, or two keys that would scrub to the same
+        // one, cannot be re-encoded faithfully: the caller treats it as text.
+        $this->assertNull(JsonScrubber::scrub('{"id":123456789012345678901,"name":"Juan García"}', $redact));
+        $this->assertNull(JsonScrubber::scrub('{"ana@example.com":1,"luis@example.com":2}', $redact));
     }
 
     public function test_log_processor_redacts_json_strings_value_by_value(): void
