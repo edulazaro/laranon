@@ -1,5 +1,6 @@
 <?php
 
+use EduLazaro\Laranon\Locales\CaPack;
 use EduLazaro\Laranon\Locales\EnPack;
 use EduLazaro\Laranon\Locales\EsPack;
 use EduLazaro\Laranon\Locales\FrPack;
@@ -23,8 +24,9 @@ return [
     |
     | Active locales and the pack class implementing each one. A pack returns
     | the locale-specific recognizers (national ids, phones, person names...).
-    | Universal recognizers below run regardless of locale. Add 'fr' for
-    | French person names: every active pack runs on every text.
+    | Universal recognizers below run regardless of locale. Add 'ca' or 'fr'
+    | for Catalan or French person names: every active pack runs on every
+    | text.
     |
     */
 
@@ -34,6 +36,7 @@ return [
         'es' => EsPack::class,
         'en' => EnPack::class,
         'fr' => FrPack::class,
+        'ca' => CaPack::class,
     ],
 
     'universal' => [

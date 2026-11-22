@@ -502,6 +502,21 @@ class RecognizersTest extends TestCase
         $this->assertSame([['Ortega', 'surname'], ['Gasset', 'surname']], $values('Lo escribió el Sr. Ortega y Gasset.'));
     }
 
+    public function test_catalan_names_with_i_dels_and_words_that_are_names(): void
+    {
+        $ca = new \EduLazaro\Laranon\Recognizers\Ca\PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($ca->detect($text)));
+
+        $this->assertSame(['Jordi', 'Pujol', 'Soley'], $values('Ho signa Jordi Pujol i Soley.'));
+        $this->assertSame(['Montserrat', 'Puig', 'Prats'], $values('Compareix la Sra. Montserrat Puig dels Prats.'));
+        $this->assertSame(['Joan', 'Garcia', 'Maria', 'Soler'], $values('Van detenir Joan Garcia i Maria Soler.'));
+        $this->assertSame(['Llum', 'Vidal'], $values('Llum Vidal signa.'));
+
+        foreach (["Els Mossos d'Esquadra.", 'Per tot això, la Llum de la tarda.', 'Aquest Tribunal acorda.', 'AJUNTAMENT DE BARCELONA'] as $text) {
+            $this->assertSame([], $values($text), $text);
+        }
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

@@ -137,6 +137,16 @@ class AnonymizerTest extends TestCase
         $this->assertSame('«AP_1» «PER_M_1» signe. Le Tribunal judiciaire de Lyon.', $this->anonymizer()->anonymize($text)->text);
     }
 
+    public function test_the_catalan_pack_is_off_until_its_locale_is_added(): void
+    {
+        $this->app['config']->set('laranon.locales', ['es', 'en', 'ca']);
+
+        $this->assertSame(
+            'Signa «PER_F_1» «AP_1». Per tot això, la llum de la tarda.',
+            $this->anonymizer()->anonymize('Signa Llum Vidal. Per tot això, la llum de la tarda.')->text,
+        );
+    }
+
     public function test_gender_can_be_turned_off(): void
     {
         $this->app['config']->set('laranon.gender', false);

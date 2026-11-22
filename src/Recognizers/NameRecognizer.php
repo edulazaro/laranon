@@ -52,7 +52,7 @@ abstract class NameRecognizer implements Recognizer
      * Battuta, ben Gurion). They stay in cleartext. "al" and "el" alone are
      * left out: "García al Juzgado" is a sentence, not a name.
      */
-    protected const PARTICLES = 'della|dello|delle|degli|dei|del|des|de(?:\s+l(?:a|os|as))?|du|das|da|dos|do|di|la|le|lo'
+    protected const PARTICLES = 'della|dello|delle|degli|dei|dels|del|des|de(?:\s+l(?:a|os|as))?|du|das|da|dos|do|di|la|le|lo'
         . '|van(?:\s+de[rn]?)?|von(?:\s+der)?|der|den|ten|ter|bint|bin|ibn|ben';
 
     /**
@@ -60,7 +60,7 @@ abstract class NameRecognizer implements Recognizer
      * lowercase. "Ben" or "Van" with a capital stay name words.
      */
     protected const PARTICLE_WORDS = [
-        'della', 'dello', 'delle', 'degli', 'dei', 'des', 'du', 'das', 'da', 'dos', 'do', 'di', 'le', 'lo',
+        'della', 'dello', 'delle', 'degli', 'dei', 'dels', 'des', 'du', 'das', 'da', 'dos', 'do', 'di', 'le', 'lo',
         'van', 'von', 'der', 'den', 'ten', 'ter', 'bint', 'bin', 'ibn', 'ben',
     ];
 
@@ -683,12 +683,12 @@ abstract class NameRecognizer implements Recognizer
             'don', 'dona', 'sr', 'sra', 'srta', 'dr', 'dra', 'ldo', 'lda', 'lcdo', 'lcda',
             'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'lady',
             'san', 'santa', 'santo', 'sant', 'saint', 'sainte',
-            'le', 'les', 'du', 'des',
+            'le', 'les', 'du', 'des', 'dels',
         ];
     }
 
     /**
-     * The closed classes of Spanish, English and French grammar: prepositions,
+     * The closed classes of Spanish, Catalan, English and French grammar: prepositions,
      * articles and contractions, determiners, possessives, pronouns and
      * conjunctions, plus the forms of "be" and "have". They open sentences
      * and clauses ("Esta Sala", "Si Juan García", "Sobre la base", "Per the
@@ -697,8 +697,8 @@ abstract class NameRecognizer implements Recognizer
      * almost always starts the text around it. They are never name words,
      * and a name ends where one appears. The particles of names (de, del,
      * la, le, du, van, da...) are not here, and neither are the words that
-     * are also frequent names or surnames: Ella, Elle, He, Ma, Mas, Ni, Ou,
-     * Sa, Son, Su, Tu.
+     * are also frequent names or surnames: Ella, Elle, Ha, Han, He, Jo, Ma,
+     * Mas, Ni, Ou, Quan, Sa, Son, Su, Tu.
      *
      * @return array<int, string>
      */
@@ -719,6 +719,15 @@ abstract class NameRecognizer implements Recognizer
             'yo', 'ellos', 'ellas', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'usted', 'ustedes',
             'que', 'como', 'cuando', 'donde', 'cual', 'cuales', 'quien', 'quienes', 'cuyo', 'cuya', 'cuyos',
             'cuyas', 'pero', 'sino', 'porque', 'aunque', 'pues', 'mientras', 'no', 'si', 'ya',
+            // Catalan articles, contractions and prepositions.
+            'els', 'uns', 'unes', 'als', 'pel', 'pels', 'amb', 'sense', 'fins', 'cap', 'segons', 'durant',
+            'mitjancant', 'malgrat',
+            // Catalan determiners, possessives, pronouns and conjunctions.
+            'aquest', 'aquesta', 'aquests', 'aquestes', 'aquell', 'aquella', 'aquells', 'aquelles', 'meu',
+            'meva', 'teu', 'teva', 'seu', 'seva', 'nostre', 'nostra', 'vostre', 'vostra', 'llur', 'llurs',
+            'tot', 'tota', 'tots', 'totes', 'altre', 'altra', 'mateix', 'mateixa', 'ell', 'nosaltres',
+            'vosaltres', 'ells', 'voste', 'vostes', 'perque', 'com', 'mentre', 'doncs', 'es', 'era', 'va',
+            'fou',
             // English prepositions.
             'about', 'above', 'across', 'after', 'against', 'along', 'amid', 'among', 'around', 'as', 'at',
             'before', 'behind', 'below', 'beneath', 'beside', 'besides', 'between', 'beyond', 'by',
