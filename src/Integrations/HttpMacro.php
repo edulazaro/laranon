@@ -2,13 +2,15 @@
 
 namespace EduLazaro\Laranon\Integrations;
 
+use EduLazaro\Laranon\Support\JsonScrubber;
 use GuzzleHttp\Psr7\Utils;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Registers Http::scrubPii(): a request middleware that redacts PII from the
  * outbound body before it leaves the server. One-way by design; use the
- * anonymize/restore round-trip when the response must be restored.
+ * anonymize/restore round-trip when the response must be restored. A JSON
+ * body is redacted value by value, so it is still valid JSON when it leaves.
  */
 class HttpMacro
 {
@@ -22,7 +24,8 @@ class HttpMacro
                     return $request;
                 }
 
-                $scrubbed = app('laranon')->strategy('redact')->anonymize($body)->text;
+                $redact = fn (string $text): string => app('laranon')->strategy('redact')->anonymize($text)->text;
+                $scrubbed = JsonScrubber::scrub($body, $redact) ?? $redact($body);
 
                 return $request->withBody(Utils::streamFor($scrubbed));
             });
