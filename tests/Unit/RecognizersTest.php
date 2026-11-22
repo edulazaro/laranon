@@ -126,6 +126,9 @@ class RecognizersTest extends TestCase
             [new IbanRecognizer(), "IBAN ES91{$nbsp}2100{$nbsp}0418{$nbsp}4502{$nbsp}0005{$nbsp}1332.", "ES91{$nbsp}2100{$nbsp}0418{$nbsp}4502{$nbsp}0005{$nbsp}1332"],
             [new \EduLazaro\Laranon\Recognizers\Es\PlateRecognizer(), "matrícula 1234\u{2013}BCD", "1234\u{2013}BCD"],
             [new \EduLazaro\Laranon\Recognizers\Es\PhoneRecognizer(), "tel. 600{$nbsp}123{$nbsp}123", "600{$nbsp}123{$nbsp}123"],
+            // Thin space (U+2009), as typesetting puts between digit groups.
+            [new DniRecognizer(), "DNI 12\u{2009}345\u{2009}678\u{2009}Z", "12\u{2009}345\u{2009}678\u{2009}Z"],
+            [new IbanRecognizer(), "IBAN ES91\u{2009}2100\u{2009}0418\u{2009}4502\u{2009}0005\u{2009}1332.", "ES91\u{2009}2100\u{2009}0418\u{2009}4502\u{2009}0005\u{2009}1332"],
         ];
 
         foreach ($cases as [$recognizer, $text, $expected]) {

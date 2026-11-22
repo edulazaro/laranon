@@ -14,16 +14,17 @@ namespace EduLazaro\Laranon\Support;
 final class Separators
 {
     /**
-     * ASCII whitespace plus the no-break space (U+00A0) and the narrow
-     * no-break space (U+202F).
+     * ASCII whitespace plus the no-break space (U+00A0), the typographic
+     * spaces from the en quad to the hair space (U+2000 to U+200A, the thin
+     * space among them) and the narrow no-break space (U+202F).
      */
-    public const SPACE = '(?:\s|\xC2\xA0|\xE2\x80\xAF)';
+    public const SPACE = '(?:\s|\xC2\xA0|\xE2\x80[\x80-\x8A\xAF])';
 
     /**
-     * A blank inside a group of digits ("12 345 678"): space, tab or a
-     * no-break space, never a line break.
+     * A blank inside a group of digits ("12 345 678"): space, tab or one of
+     * the typographic spaces of SPACE, never a line break.
      */
-    public const BLANK = '(?:[ \t]|\xC2\xA0|\xE2\x80\xAF)';
+    public const BLANK = '(?:[ \t]|\xC2\xA0|\xE2\x80[\x80-\x8A\xAF])';
 
     /**
      * The ASCII hyphen plus the typographic dashes (U+2010 to U+2015) and the
