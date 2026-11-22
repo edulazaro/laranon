@@ -99,13 +99,20 @@ final class LanguageDetector
      * has (data/languages/words), most first, for a text too short for its
      * n-grams: "Llamar al 612345678" has the "al" of Spanish and Catalan.
      * Keyed by the language without its variant ("pt"); languages with none,
-     * or without a list, are left out.
+     * or without a list, are left out. Only lowercase words count: a
+     * capitalized one can be part of a name ("Sans" in Jordi Sans Vidal).
      *
      * @return array<string, int>
      */
     public function wordCounts(string $text): array
     {
-        $tokens = preg_split('/[^\pL]+/u', Str::ascii(mb_strtolower($text)), -1, PREG_SPLIT_NO_EMPTY);
+        $tokens = array_map(
+            fn (string $token) => Str::ascii($token),
+            array_filter(
+                preg_split('/[^\pL]+/u', $text, -1, PREG_SPLIT_NO_EMPTY),
+                fn (string $token) => mb_strtolower($token) === $token,
+            ),
+        );
         $counts = [];
 
         foreach ($this->words as $code => $words) {

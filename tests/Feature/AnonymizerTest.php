@@ -230,6 +230,11 @@ class AnonymizerTest extends TestCase
             'Hola, soy «PER_M_1» «AP_1» «AP_2» y mi móvil es «TEL_1».',
             Anonymizer::create()->anonymize('Hola, soy Jordi Sans Vidal y mi móvil es 612 345 678.'),
         );
+        $this->assertSame('«PER_M_1» «AP_1» «AP_2»', Anonymizer::create()->anonymize('Jordi Sans Vidal'));
+        $this->assertSame(
+            '{"nombre":"«PER_M_1» «AP_1» «AP_2»","telefono":"«TEL_1»","cp":"28013"}',
+            Anonymizer::create()->anonymize('{"nombre":"Jordi Sans Vidal","telefono":"612 345 678","cp":"28013"}'),
+        );
         $this->assertSame(
             'La senyora «PER_F_1» «AP_1» «AP_2» viu a Girona, i el seu telèfon és «TEL_1».',
             Anonymizer::create()->anonymize('La senyora Montserrat Tous Ferrer viu a Girona, i el seu telèfon és 612 345 678.'),

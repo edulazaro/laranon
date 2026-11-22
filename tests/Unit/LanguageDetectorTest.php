@@ -46,4 +46,13 @@ class LanguageDetectorTest extends TestCase
 
         $this->assertSame(['es', 'fr', 'en'], array_keys($detector->scores('Comparece D. Juan García López en nombre de la entidad demandada y dice que interpone recurso.')));
     }
+
+    public function test_only_lowercase_words_tell_a_language(): void
+    {
+        $detector = LanguageDetector::create(['es', 'fr']);
+
+        // A capitalized word can be part of a name: "Sans" in Jordi Sans Vidal.
+        $this->assertSame([], $detector->wordCounts('Jordi Sans Vidal'));
+        $this->assertSame(['fr' => 2], $detector->wordCounts('Il est parti sans'));
+    }
 }
