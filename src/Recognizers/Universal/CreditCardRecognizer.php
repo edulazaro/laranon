@@ -15,8 +15,10 @@ class CreditCardRecognizer extends RegexRecognizer
 
     protected function patterns(): array
     {
+        // Groups split by a blank or a dash, never by a line break: a column
+        // of amounts ("4500⏎1000⏎1800⏎1300") can pass Luhn by chance.
         return [
-            '/(?<!\d)(?:\d' . Separators::ONE . '?){12,18}\d(?!\d)/' => 0.95,
+            '/(?<!\d)(?:\d(?:' . Separators::BLANK . '|' . Separators::DASH . ')?){12,18}\d(?!\d)/' => 0.95,
         ];
     }
 

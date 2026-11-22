@@ -67,6 +67,15 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values('Con matrícula M-1234 AB.'));
     }
 
+    public function test_a_column_of_amounts_is_not_a_card(): void
+    {
+        $recognizer = new \EduLazaro\Laranon\Recognizers\Universal\CreditCardRecognizer();
+
+        $this->assertSame([], $recognizer->detect("Importes:\n4500\n1000\n1800\n1300\nTotal."));
+        $this->assertCount(1, $recognizer->detect('Tarjeta 4500 1000 1800 1300 caducada.'));
+        $this->assertCount(1, $recognizer->detect("Tarjeta 4500\u{00A0}1000-1800-1300 caducada."));
+    }
+
     public function test_email_recognizer(): void
     {
         $spans = (new EmailRecognizer())->detect('Escribe a maria.garcia@despacho.legal cuando puedas.');
