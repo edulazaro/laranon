@@ -237,6 +237,8 @@ Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gate
 
 Person names combine honorific triggers (D., Dña., Sr., Mr., Dr...) with gazetteer-gated capitalized sequences: a run of 2+ capitalized words only counts once its first token is a known given name, and a last-token hit in the surname gazetteer bumps confidence. Every match is split into per-word spans (`person` for the given name, `surname` for each surname word). A curated list of names that are also plain nouns ("Luz", "Rose", "Faith"...) requires a confirmed surname before matching at all, so bare "Luz" is left alone but "Luz Martínez" is not (honorific patterns skip the gazetteer, so "Dña. Luz" still matches on its own). Grammatical particles and honorific titles never gate a match or become name spans, even when census artifacts list them as given names.
 
+In Spanish, honorifics match in any case (`DON JUAN`, `don Juan`, `SR. GARCÍA`), and all-caps names without one ("Comparece JUAN GARCÍA LÓPEZ"), the way escrituras and court documents write them, are found too. An all-caps run must start with a known given name **and** end with a known surname, so headings such as "TRIBUNAL SUPREMO" or "SEGUNDO MOTIVO" are left alone. A name in capitals and the same name in mixed case get different tokens ("GARCÍA" and "García"), because restoration is byte for byte.
+
 The bundled dictionaries (`data/`) are built from official sources, not toy lists:
 
 | File | Entries | Source |

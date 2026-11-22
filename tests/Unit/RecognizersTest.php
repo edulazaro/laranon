@@ -143,6 +143,47 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_uppercase_names_with_and_without_honorific(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+
+        $cases = [
+            'DON JUAN GARCÍA LÓPEZ comparece.' => [['JUAN', 'person'], ['GARCÍA', 'surname'], ['LÓPEZ', 'surname']],
+            'Comparece JOSÉ LUIS RODRÍGUEZ ZAPATERO, mayor de edad.' => [['JOSÉ', 'person'], ['LUIS', 'surname'], ['RODRÍGUEZ', 'surname'], ['ZAPATERO', 'surname']],
+            'VISTOS por DOÑA MARÍA DEL CARMEN RUIZ GÓMEZ, Magistrada.' => [['MARÍA', 'person'], ['CARMEN', 'surname'], ['RUIZ', 'surname'], ['GÓMEZ', 'surname']],
+            'Lo atiende el SR. GARCÍA.' => [['GARCÍA', 'surname']],
+            'Comparece don Juan Pérez.' => [['Juan', 'person'], ['Pérez', 'surname']],
+        ];
+
+        foreach ($cases as $text => $expected) {
+            $spans = SpanResolver::resolve($recognizer->detect($text));
+
+            $this->assertSame($expected, array_map(fn ($span) => [$span->value, $span->type], $spans), $text);
+        }
+    }
+
+    public function test_uppercase_headings_and_places_are_not_names(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+
+        foreach ([
+            'TRIBUNAL SUPREMO. SALA DE LO CIVIL',
+            'SEGUNDO MOTIVO DE OPOSICIÓN',
+            'contra BANCO SANTANDER, S.A.',
+            'Vive en SAN SEBASTIÁN, o en San Sebastián.',
+            'SANTA CRUZ DE TENERIFE',
+        ] as $text) {
+            $this->assertSame([], $recognizer->detect($text), $text);
+        }
+    }
+
+    public function test_the_d_of_sr_d_is_not_a_surname(): void
+    {
+        $spans = SpanResolver::resolve((new PersonNameRecognizer())->detect('El Sr. D. Luis Fernando de Castro firma.'));
+
+        $this->assertSame(['Luis', 'Fernando', 'Castro'], array_map(fn ($span) => $span->value, $spans));
+    }
+
     public function test_person_name_via_honorific_splits_into_word_spans(): void
     {
         // The honorific and the plain pattern both hit here; SpanResolver

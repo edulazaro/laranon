@@ -8,20 +8,40 @@ class PersonNameRecognizer extends NameRecognizer
 {
     protected function honorificPattern(): ?string
     {
-        // D./Dña./Don/Doña introduce a given name (Don Juan, Dña. Luz).
-        $word = '\p{Lu}[\p{L}\']*(?:' . self::HYPHEN . '\p{Lu}[\p{L}\']*)*';
-
-        return '/(?:\b(?:Don|Doña)|(?<!\p{L})(?:D|Dña)\.)\s+'
-            . '(' . $word . '(?:\s+(?:de(?:\s+l(?:a|os|as))?|del|y|e|la)\s+' . $word . '|\s+' . $word . '){0,3})/u';
+        // D./Dña./Don/Doña introduce a given name (Don Juan, Dña. Luz). Don,
+        // Doña and the connectors in any case: the RAE writes "don Juan" and
+        // documents write "DON JUAN DE LA CRUZ".
+        return '/(?:\b(?i:Don|Doña)|(?<!\p{L})(?:D|(?i:Dña))\.)\s+(' . $this->honorificName() . ')/u';
     }
 
     protected function surnameHonorificPattern(): ?string
     {
-        // Sr./Sra./Dr./Ldo... introduce a surname (Sr. García, Dra. Vidal).
-        $word = '\p{Lu}[\p{L}\']*(?:' . self::HYPHEN . '\p{Lu}[\p{L}\']*)*';
+        // Sr./Sra./Dr./Ldo... introduce a surname (Sr. García, Dra. Vidal), in
+        // any case (SR. GARCÍA).
+        return '/(?<!\p{L})(?i:Srta|Sra|Sr|Dra|Dr|Lcdo|Lcda|Ldo|Lda)\.?\s+(' . $this->honorificName() . ')/u';
+    }
 
-        return '/(?<!\p{L})(?:Srta|Sra|Sr|Dra|Dr|Lcdo|Lcda|Ldo|Lda)\.?\s+'
-            . '(' . $word . '(?:\s+(?:de(?:\s+l(?:a|os|as))?|del|y|e|la)\s+' . $word . '|\s+' . $word . '){0,3})/u';
+    /**
+     * The name after an honorific: up to four words, in any case. Each word
+     * has 2+ letters, so in "Sr. D. Luis" the "D" of "D." is never taken for
+     * a surname.
+     */
+    protected function honorificName(): string
+    {
+        $word = '\p{Lu}[\p{L}\']+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\']+)*';
+
+        return $word . '(?:\s+(?i:de(?:\s+l(?:a|os|as))?|del|y|e|la)\s+' . $word . '|\s+' . $word . '){0,3}';
+    }
+
+    protected function upperNamePattern(): ?string
+    {
+        // All-caps names ("JUAN GARCÍA LÓPEZ"), as escrituras and court
+        // documents write them. Only within a line: headings sit on their
+        // own lines and must not be glued to the name above them.
+        $word = '\p{Lu}{2,}(?:' . self::HYPHEN . '\p{Lu}{2,})*';
+
+        return '/(?<![\p{L}\p{N}])' . $word
+            . '(?:\h+(?:DE(?:\h+L(?:A|OS|AS))?|DEL)\h+' . $word . '|\h+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
     }
 
     protected function namePattern(): string

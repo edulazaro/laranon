@@ -62,6 +62,16 @@ abstract class NameRecognizer implements Recognizer
     abstract protected function namePattern(): string;
 
     /**
+     * Regex matching candidate all-caps name sequences (2+ words, "JUAN
+     * GARCÍA LÓPEZ"), or null when the locale does not look for them. They
+     * pass a stricter gate than namePattern(): see resolveUpperCandidate().
+     */
+    protected function upperNamePattern(): ?string
+    {
+        return null;
+    }
+
+    /**
      * Gazetteer file with given names, relative to the data path.
      */
     abstract protected function firstNamesFile(): string;
@@ -131,7 +141,52 @@ abstract class NameRecognizer implements Recognizer
             }
         }
 
+        $upper = $this->upperNamePattern();
+
+        if ($upper !== null && preg_match_all($upper, $text, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as [$value, $offset]) {
+                array_push($spans, ...$this->resolveUpperCandidate($value, $offset));
+            }
+        }
+
         return $spans;
+    }
+
+    /**
+     * An all-caps run is a name only when it starts with a known given name
+     * AND ends with a known surname: headings are written in capitals too
+     * ("TRIBUNAL SUPREMO", "SEGUNDO MOTIVO"), and the double gate is what
+     * keeps them out (mixed case only needs the given name). Leading words
+     * that are not a given name ("COMPARECE") and trailing words that are not
+     * a surname are dropped first.
+     *
+     * @return array<int, Span>
+     */
+    protected function resolveUpperCandidate(string $value, int $offset): array
+    {
+        preg_match_all('/\S+/u', $value, $matches, PREG_OFFSET_CAPTURE);
+        $tokens = $matches[0];
+
+        $start = 0;
+        $end = count($tokens) - 1;
+
+        while ($start < $end && ! isset($this->firstNames()[$this->parts($tokens[$start][0])[0]])) {
+            $start++;
+        }
+
+        while ($end > $start && ! $this->isSurname($tokens[$end][0])) {
+            $end--;
+        }
+
+        if ($end <= $start) {
+            return [];
+        }
+
+        $relativeStart = $tokens[$start][1];
+        $relativeEnd = $tokens[$end][1] + strlen($tokens[$end][0]);
+        $trimmed = substr($value, $relativeStart, $relativeEnd - $relativeStart);
+
+        return $this->splitNameWords($trimmed, $offset + $relativeStart, 0.9);
     }
 
     /**
@@ -162,7 +217,7 @@ abstract class NameRecognizer implements Recognizer
 
         $first = $this->parts($tokens[$start][0])[0];
         $lastToken = $tokens[array_key_last($tokens)];
-        $surnameConfirmed = array_filter($this->parts($lastToken[0]), fn (string $part) => isset($this->lastNames()[$part])) !== [];
+        $surnameConfirmed = $this->isSurname($lastToken[0]);
 
         if (isset($this->ambiguousNames()[$first]) && ! $surnameConfirmed) {
             // "Luz"/"Rose"/"Faith" read as the common word far more often
@@ -270,7 +325,8 @@ abstract class NameRecognizer implements Recognizer
      * are far more frequent than bare, honorific-less mentions of such
      * names, so excluding them trades a small recall loss for a large
      * precision gain. The honorific patterns do not consult the gazetteer
-     * and are unaffected.
+     * and are unaffected. "San", "Santa" and "Santo" open place and saint
+     * names (San Sebastián, Santa Cruz) far more often than a person's.
      *
      * @return array<int, string>
      */
@@ -281,6 +337,7 @@ abstract class NameRecognizer implements Recognizer
             'the', 'a', 'an',
             'don', 'dona', 'sr', 'sra', 'srta', 'dr', 'dra', 'ldo', 'lda', 'lcdo', 'lcda',
             'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'lady',
+            'san', 'santa', 'santo',
         ];
     }
 
@@ -312,5 +369,16 @@ abstract class NameRecognizer implements Recognizer
     protected function parts(string $word): array
     {
         return array_map(fn (string $part) => $this->fold($part), preg_split('/' . self::HYPHEN . '/u', $word));
+    }
+
+    protected function isSurname(string $word): bool
+    {
+        foreach ($this->parts($word) as $part) {
+            if (isset($this->lastNames()[$part])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
