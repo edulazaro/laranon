@@ -72,6 +72,23 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_a_hyphenated_surname_is_one_surname_word(): void
+    {
+        $cases = [
+            [new PersonNameRecognizer(), 'Lo firma Arturo Pérez-Reverte.', ['Arturo', 'Pérez-Reverte']],
+            [new PersonNameRecognizer(), 'Comparece D. Juan Gómez-Acebo Martín.', ['Juan', 'Gómez-Acebo', 'Martín']],
+            [new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer(), 'Signed by Catherine Zeta-Jones.', ['Catherine', 'Zeta-Jones']],
+        ];
+
+        foreach ($cases as [$recognizer, $text, $expected]) {
+            $spans = SpanResolver::resolve($recognizer->detect($text));
+
+            $this->assertSame($expected, array_map(fn ($span) => $span->value, $spans), $text);
+            $this->assertSame('person', $spans[0]->type, $text);
+            $this->assertSame('surname', $spans[1]->type, $text);
+        }
+    }
+
     public function test_person_name_via_honorific_splits_into_word_spans(): void
     {
         // The honorific and the plain pattern both hit here; SpanResolver

@@ -14,6 +14,12 @@ use Illuminate\Support\Str;
  */
 abstract class NameRecognizer implements Recognizer
 {
+    /**
+     * Joins the parts of a hyphenated name (Pérez-Reverte): the ASCII hyphen,
+     * U+2010 and the non-breaking U+2011. For patterns with the u modifier.
+     */
+    protected const HYPHEN = '[-\x{2010}\x{2011}]';
+
     /** @var array<string, true>|null */
     protected ?array $firstNames = null;
 
@@ -136,7 +142,7 @@ abstract class NameRecognizer implements Recognizer
 
         $start = 0;
 
-        while (count($tokens) - $start >= 2 && ! isset($this->firstNames()[$this->fold($tokens[$start][0])])) {
+        while (count($tokens) - $start >= 2 && ! isset($this->firstNames()[$this->parts($tokens[$start][0])[0]])) {
             $start++;
         }
 
@@ -144,10 +150,9 @@ abstract class NameRecognizer implements Recognizer
             return [];
         }
 
-        $first = $this->fold($tokens[$start][0]);
+        $first = $this->parts($tokens[$start][0])[0];
         $lastToken = $tokens[array_key_last($tokens)];
-        $last = $this->fold($lastToken[0]);
-        $surnameConfirmed = isset($this->lastNames()[$last]);
+        $surnameConfirmed = array_filter($this->parts($lastToken[0]), fn (string $part) => isset($this->lastNames()[$part])) !== [];
 
         if (isset($this->ambiguousNames()[$first]) && ! $surnameConfirmed) {
             // "Luz"/"Rose"/"Faith" read as the common word far more often
@@ -285,5 +290,17 @@ abstract class NameRecognizer implements Recognizer
     protected function fold(string $value): string
     {
         return Str::ascii(mb_strtolower($value));
+    }
+
+    /**
+     * The folded parts of a word. The gazetteers list single words, so a
+     * hyphenated one is looked up by its parts: the first gates a given name
+     * (Jean-Pierre), any of them confirms a surname (Pérez-Reverte).
+     *
+     * @return array<int, string>
+     */
+    protected function parts(string $word): array
+    {
+        return array_map(fn (string $part) => $this->fold($part), preg_split('/' . self::HYPHEN . '/u', $word));
     }
 }
