@@ -675,26 +675,51 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
-     * Prepositions, determiners and conjunctions that open sentences and
-     * clauses ("Esta Sala", "Si Juan García", "Sobre la base"). The census
-     * lists some as names (Esta, Ese, Si) or surnames (Contra, Sobre, En),
-     * but a capitalized one beside a name almost always starts the text
-     * around it. They are never name words, and a name ends where one
-     * appears. Words that are also real surnames (Mas, Su, He) are left out.
+     * The closed classes of Spanish and English grammar: prepositions,
+     * articles and contractions, determiners, possessives, pronouns and
+     * conjunctions, plus the forms of "be" and "have". They open sentences
+     * and clauses ("Esta Sala", "Si Juan García", "Sobre la base", "Per the
+     * agreement"), and the census lists some as names (Esta, Ese, Si, Per)
+     * or surnames (Contra, Sobre, En), but a capitalized one beside a name
+     * almost always starts the text around it. They are never name words,
+     * and a name ends where one appears. The particles of names (de, del,
+     * la, van, da...) are not here, and neither are the words that are also
+     * frequent names or surnames: Ella, He, Mas, Ni, Su, Tu.
      *
      * @return array<int, string>
      */
     protected function functionWords(): array
     {
         return [
-            'en', 'por', 'para', 'con', 'sin', 'sobre', 'entre', 'hasta', 'desde', 'ante', 'tras',
-            'segun', 'contra', 'hacia', 'durante', 'mediante', 'bajo',
-            'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'esto', 'eso',
-            'mi', 'que', 'como', 'cuando', 'donde', 'pero', 'porque', 'aunque', 'no', 'si', 'ya',
-            'al', 'todo', 'todos', 'toda', 'todas',
-            'of', 'in', 'on', 'at', 'to', 'for', 'by', 'with', 'from', 'and', 'or', 'but',
-            'this', 'that', 'these', 'those', 'his', 'her', 'their', 'our', 'its',
-            'as', 'is', 'was', 'be', 'it', 'we', 'you', 'she', 'they',
+            // Spanish prepositions and the contraction "al".
+            'ante', 'bajo', 'cabe', 'con', 'contra', 'desde', 'durante', 'en', 'entre', 'hacia', 'hasta',
+            'mediante', 'para', 'por', 'segun', 'sin', 'sobre', 'tras', 'versus', 'via', 'al',
+            // Spanish determiners and possessives.
+            'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'aquellos',
+            'aquellas', 'esto', 'eso', 'aquello', 'mi', 'mis', 'tus', 'sus', 'nuestro', 'nuestra', 'nuestros',
+            'nuestras', 'vuestro', 'vuestra', 'vuestros', 'vuestras', 'todo', 'todos', 'toda', 'todas', 'cada',
+            'otro', 'otra', 'otros', 'otras', 'mismo', 'misma', 'mismos', 'mismas', 'dicho', 'dicha', 'dichos',
+            'dichas', 'tal', 'tales', 'ambos', 'ambas', 'varios', 'varias', 'alguno', 'alguna', 'algunos',
+            'algunas', 'ninguno', 'ninguna', 'cualquier', 'cualquiera',
+            // Spanish pronouns, relatives and conjunctions.
+            'yo', 'ellos', 'ellas', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'usted', 'ustedes',
+            'que', 'como', 'cuando', 'donde', 'cual', 'cuales', 'quien', 'quienes', 'cuyo', 'cuya', 'cuyos',
+            'cuyas', 'pero', 'sino', 'porque', 'aunque', 'pues', 'mientras', 'no', 'si', 'ya',
+            // English prepositions.
+            'about', 'above', 'across', 'after', 'against', 'along', 'amid', 'among', 'around', 'as', 'at',
+            'before', 'behind', 'below', 'beneath', 'beside', 'besides', 'between', 'beyond', 'by',
+            'concerning', 'despite', 'down', 'during', 'except', 'for', 'from', 'in', 'inside', 'into',
+            'like', 'near', 'of', 'off', 'on', 'onto', 'out', 'outside', 'over', 'past', 'per', 'regarding',
+            'since', 'than', 'through', 'throughout', 'till', 'to', 'toward', 'towards', 'under',
+            'underneath', 'unlike', 'until', 'up', 'upon', 'with', 'within', 'without',
+            // English determiners, possessives and pronouns.
+            'this', 'that', 'these', 'those', 'all', 'any', 'each', 'every', 'some', 'other', 'another',
+            'such', 'both', 'either', 'neither', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'it',
+            'we', 'you', 'she', 'they', 'them', 'us', 'him',
+            // English conjunctions and relatives, and the forms of be and have.
+            'and', 'or', 'but', 'nor', 'yet', 'if', 'because', 'although', 'though', 'while', 'whereas',
+            'unless', 'whether', 'when', 'where', 'which', 'who', 'whom', 'whose', 'what', 'why', 'how',
+            'is', 'was', 'are', 'were', 'be', 'been', 'has', 'have', 'had',
         ];
     }
 

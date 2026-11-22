@@ -70,6 +70,14 @@ class AnonymizerTest extends TestCase
         );
     }
 
+    public function test_a_function_word_is_never_swept_as_a_name(): void
+    {
+        $this->assertSame(
+            'Per J. K. Rowling. Per the agreement, «PER_M_1» «AP_1» pays.',
+            $this->anonymizer()->anonymize('Per J. K. Rowling. Per the agreement, John Smith pays.')->text,
+        );
+    }
+
     public function test_a_closing_quote_is_not_part_of_the_name(): void
     {
         $this->assertSame(

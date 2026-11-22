@@ -415,6 +415,14 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Juan', 'García'], $values($es, 'Firma Juan García Sobre la base de lo expuesto.'));
         $this->assertSame(['MARÍA', 'LÓPEZ', 'GARCÍA', 'JUAN', 'PÉREZ'], $values($es, 'MARÍA LÓPEZ GARCÍA CONTRA JUAN PÉREZ'));
         $this->assertSame(['JUAN', 'GARCÍA'], $values($es, 'CONDENO A JUAN GARCÍA AL PAGO DE LAS COSTAS.'));
+
+        // Every class, in both languages, not only the words seen so far.
+        foreach ([$es, $en] as $recognizer) {
+            $this->assertSame([], $values($recognizer, 'Per J. K. Rowling. Dicha Sala acuerda. Ambos Cónyuges firman.'));
+        }
+
+        // A function word that is also a frequent given name is still a name.
+        $this->assertSame(['Ella', 'Fitzgerald'], $values($en, 'Ella Fitzgerald sang.'));
         $this->assertSame(['PEDRO', 'RUIZ'], $values($es, 'ABSUELVO A PEDRO RUIZ TODOS LOS CARGOS.'));
     }
 
