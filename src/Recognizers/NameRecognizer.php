@@ -663,7 +663,7 @@ abstract class NameRecognizer implements Recognizer
             'segun', 'contra', 'hacia', 'durante', 'mediante', 'bajo',
             'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas', 'aquel', 'aquella', 'esto', 'eso',
             'mi', 'que', 'como', 'cuando', 'donde', 'pero', 'porque', 'aunque', 'no', 'si', 'ya',
-            'civil', 'penal',
+            'al', 'todo', 'todos', 'toda', 'todas', 'civil', 'penal',
             'of', 'in', 'on', 'at', 'to', 'for', 'by', 'with', 'from', 'and', 'or', 'but',
             'this', 'that', 'these', 'those', 'his', 'her', 'their', 'our', 'its',
             'as', 'is', 'was', 'be', 'it', 'we', 'you', 'she', 'they',
