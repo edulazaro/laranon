@@ -358,6 +358,7 @@ Laranon is supported by the following sponsors. Thank you for keeping it growing
 <p>
   <a href="https://kenodo.com"><img src="art/logo-kenodo.png" width="24" alt="Kenodo"></a>&nbsp;<a href="https://kenodo.com">Kenodo</a>&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://andorradev.com"><img src="art/logo-andorradev.png" width="24" alt="AndorraDev"></a>&nbsp;<a href="https://andorradev.com">AndorraDev</a>&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://claimeet.com"><img src="art/logo-claimeet.png" width="24" alt="Claimeet"></a>&nbsp;<a href="https://claimeet.com">Claimeet</a>&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://crowd.legal"><img src="art/logo-crowd-legal.png" width="24" alt="Crowd Legal"></a>&nbsp;<a href="https://crowd.legal">Crowd Legal</a>&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://inis.legal"><img src="art/logo-inis-legal.png" width="24" alt="Inis Legal"></a>&nbsp;<a href="https://inis.legal">Inis Legal</a>
 </p>
