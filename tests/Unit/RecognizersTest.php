@@ -239,6 +239,23 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Luis', 'Fernando', 'Castro'], array_map(fn ($span) => $span->value, $spans));
     }
 
+    public function test_d_ordinal_a_is_dona_not_an_initial(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+
+        $full = [['Raquel', 'person'], ['Blázquez', 'surname'], ['Martín', 'surname']];
+
+        foreach ([
+            'Firmado: D.ª Raquel Blázquez Martín.' => $full,
+            'Comparece Dª Raquel Blázquez Martín.' => $full,
+            'Comparece D.ª Raquel.' => [['Raquel', 'person']],
+        ] as $text => $expected) {
+            $spans = SpanResolver::resolve($recognizer->detect($text));
+
+            $this->assertSame($expected, array_map(fn ($span) => [$span->value, $span->type], $spans), $text);
+        }
+    }
+
     public function test_a_given_name_carries_its_gender_from_the_gazetteer(): void
     {
         $recognizer = new PersonNameRecognizer();

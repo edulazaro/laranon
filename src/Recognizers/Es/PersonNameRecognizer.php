@@ -8,10 +8,10 @@ class PersonNameRecognizer extends NameRecognizer
 {
     protected function honorificPattern(): ?string
     {
-        // D./Dña./Don/Doña introduce a given name (Don Juan, Dña. Luz). Don,
-        // Doña and the connectors in any case: the RAE writes "don Juan" and
-        // documents write "DON JUAN DE LA CRUZ".
-        return '/(?:\b(?i:Don|Doña)|(?<!\p{L})(?:D|(?i:Dña))\.)\s+(' . $this->honorificName() . ')/u';
+        // D./D.ª/Dña./Don/Doña introduce a given name (Don Juan, Dña. Luz,
+        // D.ª Raquel). Don, Doña and the connectors in any case: the RAE
+        // writes "don Juan" and documents write "DON JUAN DE LA CRUZ".
+        return '/(?:\b(?i:Don|Doña)|(?<!\p{L})(?:D\.?ª|(?:D|(?i:Dña))\.))\s+(' . $this->honorificName() . ')/u';
     }
 
     protected function surnameHonorificPattern(): ?string

@@ -219,13 +219,14 @@ abstract class NameRecognizer implements Recognizer
      * A name opened by initials and no given name ("J. Smith", "Fdo.: A.
      * García López", "J. R. R. Tolkien"). Its first capturing group holds
      * the words after the initials. Initials written together ("S.A.",
-     * "S.L.") are company forms and are left out.
+     * "S.L.") are company forms and are left out, and so is "D.ª", which
+     * is doña, not an initial.
      */
     protected function initialsPattern(): string
     {
         $next = '(?:' . self::NAME_WORD . '|' . self::PREFIXED_WORD . ')';
 
-        return '/(?<![\p{L}\p{N}.])' . self::INITIAL . '(?:\s' . self::INITIAL . '){0,2}\s+'
+        return '/(?<![\p{L}\p{N}.])(?!D\.?ª)' . self::INITIAL . '(?:\s' . self::INITIAL . '){0,2}\s+'
             . '(' . self::NAME_WORD . '(?:\s+(?:' . self::PARTICLES . ')\s+' . $next . '|\s+' . $next . '){0,2})(?![\p{L}\p{N}])/u';
     }
 
