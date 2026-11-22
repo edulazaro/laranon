@@ -24,6 +24,34 @@ class TokenMapTest extends TestCase
         $this->assertSame('«DNI_2»', $c);
     }
 
+    public function test_ways_of_writing_a_name_share_a_token_but_n_tilde_does_not_fold(): void
+    {
+        $map = new TokenMap();
+        $strategy = new TokenStrategy('«%s_%d»', ['surname' => 'AP']);
+
+        $tokens = array_map(
+            fn (string $value) => $map->replacementFor(new Span(0, strlen($value), 'surname', $value), $strategy),
+            ['García', 'GARCÍA', 'GARCIA', 'Peña', 'PENA'],
+        );
+
+        $this->assertSame(['«AP_1»', '«AP_1»', '«AP_1»', '«AP_2»', '«AP_3»'], $tokens);
+        $this->assertSame(['García', 'GARCÍA', 'GARCIA', 'Peña', 'PENA'], $map->valuesForType('surname'));
+    }
+
+    public function test_a_map_saved_by_1_2_still_groups_its_values(): void
+    {
+        $map = TokenMap::fromArray([
+            'entries' => ['«AP_1»' => 'García'],
+            'index' => ['surname|García' => '«AP_1»'],
+            'counters' => ['surname' => 1],
+        ]);
+
+        $strategy = new TokenStrategy('«%s_%d»', ['surname' => 'AP']);
+
+        $this->assertSame('«AP_1»', $map->replacementFor(new Span(0, 7, 'surname', 'GARCÍA'), $strategy));
+        $this->assertSame('García', $map->restore('«AP_1»'));
+    }
+
     public function test_restore_replaces_tokens_with_originals(): void
     {
         $map = new TokenMap(['«DNI_1»' => '12345678Z']);

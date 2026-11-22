@@ -73,6 +73,40 @@ class AnonymizerTest extends TestCase
         $this->anonymizer()->only(['dnii'])->anonymize('DNI 12345678Z.');
     }
 
+    public function test_ways_of_writing_a_name_share_one_token(): void
+    {
+        $result = $this->anonymizer()->anonymize("DEMANDANTE: JUAN GARCÍA\nComparece Juan García. Lo ratifica el SR. GARCIA.");
+
+        $this->assertSame("DEMANDANTE: «PER_1» «AP_1»\nComparece «PER_1» «AP_1». Lo ratifica el SR. «AP_1».", $result->text);
+    }
+
+    public function test_a_name_seen_in_several_forms_restores_to_the_one_that_fits(): void
+    {
+        $result = $this->anonymizer()->anonymize("DEMANDANTE: JUAN GARCÍA\nComparece Juan García.");
+
+        $this->assertSame(
+            "PARTE: JUAN GARCÍA\nEl demandante Juan García reclama.",
+            $result->restore("PARTE: «PER_1» «AP_1»\nEl demandante «PER_1» «AP_1» reclama."),
+        );
+
+        // The input itself comes back as it was.
+        $this->assertSame("DEMANDANTE: JUAN GARCÍA\nComparece Juan García.", $result->restore($result->text));
+    }
+
+    public function test_a_name_seen_in_one_form_always_restores_to_it(): void
+    {
+        $result = $this->anonymizer()->anonymize('Comparece Juan García.');
+
+        $this->assertSame('PARTE: Juan García', $result->restore('PARTE: «PER_1» «AP_1»'));
+    }
+
+    public function test_a_known_entity_in_capitals_shares_its_token(): void
+    {
+        $result = $this->anonymizer()->withEntities(['Acme Health'])->anonymize('ACME HEALTH contra Acme Health.');
+
+        $this->assertSame('«ENT_1» contra «ENT_1».', $result->text);
+    }
+
     public function test_only_accepts_every_type_a_recognizer_emits(): void
     {
         $surnames = $this->anonymizer()->only('surname')->anonymize('Firma María López.');

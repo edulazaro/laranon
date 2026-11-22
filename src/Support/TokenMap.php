@@ -7,9 +7,17 @@ use EduLazaro\Laranon\Contracts\Strategy;
 /**
  * The match store: replacement ↔ original value pairs plus per-type counters.
  * Stable within a scope: the same value always resolves to the same token.
+ * Values are grouped by ValueKey, so the ways of writing one name ("García",
+ * "GARCÍA") share a token, and every written form is remembered.
  */
 final class TokenMap
 {
+    /**
+     * Bytes looked at on each side of a name token, when restoring, to tell a
+     * heading in capitals from running text.
+     */
+    public const CONTEXT_BYTES = 80;
+
     /**
      * Enough retries for a generative strategy to walk its whole name pool
      * (see FakerStrategy) before the suffix fallback kicks in.
@@ -18,21 +26,47 @@ final class TokenMap
 
     private const WORD_CHAR = '[\p{L}\p{N}]';
 
+    /** @var array<string, string> "type|key" => replacement */
+    protected array $index = [];
+
+    /** @var array<string, array<int, string>> "type|key" => written forms, first seen first */
+    protected array $forms = [];
+
     /** @var array<string, array<int, array{0: string, 1: bool}>>|null */
     private ?array $heads = null;
 
     private int $headsBuiltFor = -1;
 
+    /** @var array<string, array<int, string>>|null */
+    private ?array $contextual = null;
+
     /**
-     * @param array<string, string> $entries replacement => original (reversible only)
-     * @param array<string, string> $index "type|value" => replacement
+     * Index keys are rebuilt from the values, so a map written by an older
+     * version (keyed by the literal value) groups the same way as a new one.
+     *
+     * @param array<string, string> $entries replacement => original, as first seen (reversible only)
+     * @param array<string, string> $index "type|key" => replacement
      * @param array<string, int> $counters type => last index used
+     * @param array<string, array<int, string>> $forms "type|key" => written forms
      */
     public function __construct(
         protected array $entries = [],
-        protected array $index = [],
+        array $index = [],
         protected array $counters = [],
+        array $forms = [],
     ) {
+        foreach ($index as $key => $replacement) {
+            $key = (string) $key;
+            $type = (string) strstr($key, '|', true);
+            $values = $forms[$key] ?? [substr($key, strlen($type) + 1)];
+            $grouped = $this->keyFor($type, (string) $values[0]);
+
+            $this->index[$grouped] ??= $replacement;
+
+            foreach ($values as $value) {
+                $this->addForm($grouped, (string) $value);
+            }
+        }
     }
 
     /**
@@ -45,9 +79,11 @@ final class TokenMap
      */
     public function replacementFor(Span $span, Strategy $strategy, string $context = ''): string
     {
-        $key = $span->type . '|' . $span->value;
+        $key = $this->keyFor($span->type, $span->value);
 
         if (isset($this->index[$key])) {
+            $this->addForm($key, $span->value);
+
             return $this->index[$key];
         }
 
@@ -72,12 +108,26 @@ final class TokenMap
         }
 
         $this->index[$key] = $replacement;
+        $this->addForm($key, $span->value);
 
         if ($strategy->reversible() && ! isset($this->entries[$replacement])) {
             $this->entries[$replacement] = $span->value;
         }
 
         return $replacement;
+    }
+
+    protected function keyFor(string $type, string $value): string
+    {
+        return $type . '|' . ValueKey::of($type, $value);
+    }
+
+    protected function addForm(string $key, string $value): void
+    {
+        if (! in_array($value, $this->forms[$key] ?? [], true)) {
+            $this->forms[$key][] = $value;
+            $this->contextual = null;
+        }
     }
 
     protected function unusable(string $replacement, string $value, string $context): bool
@@ -110,7 +160,7 @@ final class TokenMap
      */
     public function preset(string $type, string $value, Strategy $strategy, int $id): void
     {
-        $key = $type . '|' . $value;
+        $key = $this->keyFor($type, $value);
 
         if (isset($this->index[$key])) {
             return;
@@ -127,6 +177,7 @@ final class TokenMap
         }
 
         $this->index[$key] = $replacement;
+        $this->addForm($key, $value);
 
         if ($strategy->reversible() && ! isset($this->entries[$replacement])) {
             $this->entries[$replacement] = $value;
@@ -137,7 +188,8 @@ final class TokenMap
      * Distinct original values already resolved for a given type in this
      * map, regardless of which call established them. Lets later calls in
      * the same scope link a bare mention ("María") to a person only
-     * introduced by full name in an earlier turn.
+     * introduced by full name in an earlier turn. Every written form counts
+     * ("García" and "GARCÍA").
      *
      * @return array<int, string>
      */
@@ -146,13 +198,13 @@ final class TokenMap
         $prefix = $type . '|';
         $values = [];
 
-        foreach (array_keys($this->index) as $key) {
-            if (str_starts_with($key, $prefix)) {
-                $values[] = substr($key, strlen($prefix));
+        foreach ($this->forms as $key => $forms) {
+            if (str_starts_with((string) $key, $prefix)) {
+                array_push($values, ...$forms);
             }
         }
 
-        return $values;
+        return array_values(array_unique($values));
     }
 
     /**
@@ -179,9 +231,12 @@ final class TokenMap
      * a letter or digit only matches as a whole word: "Rey" restores in
      * "Javier Rey firma" but not in "Reyes Católicos".
      *
+     * A name seen written in several ways ("García", "GARCÍA") restores to
+     * the way that fits its surroundings: see restoredValue().
+     *
      * $before and $after are the text right around $text when it is a
-     * fragment of a longer one (a streamed chunk): they only decide those
-     * word boundaries and are not part of the result.
+     * fragment of a longer one (a streamed chunk): they only decide word
+     * boundaries and that context, and are not part of the result.
      */
     public function restore(string $text, string $before = '', string $after = ''): string
     {
@@ -222,7 +277,8 @@ final class TokenMap
                     continue;
                 }
 
-                $restored .= substr($text, $cursor, $offset - $cursor) . $this->entries[$replacement];
+                $restored .= substr($text, $cursor, $offset - $cursor)
+                    . $this->restoredValue($replacement, $text, $offset, $next, $before, $after);
                 $cursor = $next;
 
                 break;
@@ -230,6 +286,125 @@ final class TokenMap
         }
 
         return $restored . substr($text, $cursor);
+    }
+
+    /**
+     * Replacements whose restored text depends on the words around them:
+     * names seen written in more than one way.
+     *
+     * @return array<int, string>
+     */
+    public function contextualReplacements(): array
+    {
+        return array_map('strval', array_keys($this->contextual()));
+    }
+
+    /**
+     * What a replacement restores to. A name seen written in several ways
+     * restores, among words in capitals, to its capitals form ("DEMANDANTE:
+     * JUAN GARCÍA") and otherwise to its other form ("el demandante Juan
+     * García"); with no words around, to the first form seen. A name seen in
+     * one form always restores to exactly that form: nothing is ever
+     * restored to a spelling the text did not contain.
+     */
+    protected function restoredValue(string $replacement, string $text, int $offset, int $next, string $before, string $after): string
+    {
+        $forms = $this->contextual()[$replacement] ?? null;
+
+        if ($forms === null) {
+            return $this->entries[$replacement];
+        }
+
+        $start = max(0, $offset - self::CONTEXT_BYTES);
+        $left = substr($before . substr($text, $start, $offset - $start), -self::CONTEXT_BYTES);
+        $right = substr(substr($text, $next, self::CONTEXT_BYTES) . $after, 0, self::CONTEXT_BYTES);
+
+        $words = $this->neighbourWords($left, $right);
+
+        if ($words === []) {
+            return $forms[0];
+        }
+
+        $capitals = array_filter($words, fn (string $word) => self::inCapitals($word)) === $words;
+
+        foreach ($forms as $form) {
+            if (self::inCapitals($form) === $capitals) {
+                return $form;
+            }
+        }
+
+        return $forms[0];
+    }
+
+    /**
+     * The nearest word of 2+ letters on each side, on the same line (a
+     * heading is a line), ignoring the replacements themselves («PER_1» is
+     * not a word in capitals).
+     *
+     * @return array<int, string>
+     */
+    protected function neighbourWords(string $left, string $right): array
+    {
+        // Within the line. Otherwise a full window was cut by bytes, and the
+        // word, token or character at its far edge may be partial ("ER_1»"
+        // looks like a word in capitals).
+        if (($newline = strrpos($left, "\n")) !== false) {
+            $left = substr($left, $newline + 1);
+        } elseif (strlen($left) >= self::CONTEXT_BYTES) {
+            $left = (string) preg_replace('/^\S*/', '', $left);
+        }
+
+        if (($newline = strpos($right, "\n")) !== false) {
+            $right = substr($right, 0, $newline);
+        } elseif (strlen($right) >= self::CONTEXT_BYTES) {
+            $right = (string) preg_replace('/\S*$/', '', $right);
+        }
+
+        $blank = array_fill_keys(array_map('strval', array_keys($this->entries)), ' ');
+        $left = strtr($left, $blank);
+        $right = strtr($right, $blank);
+
+        $words = [];
+
+        if (preg_match_all('/\p{L}{2,}/u', $left, $m) && $m[0] !== []) {
+            $words[] = end($m[0]);
+        }
+
+        if (preg_match('/\p{L}{2,}/u', $right, $m)) {
+            $words[] = $m[0];
+        }
+
+        return $words;
+    }
+
+    protected static function inCapitals(string $text): bool
+    {
+        return mb_strtoupper($text) === $text && mb_strtolower($text) !== $text;
+    }
+
+    /**
+     * replacement => written forms, for name-type values seen in more than
+     * one form.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function contextual(): array
+    {
+        if ($this->contextual !== null) {
+            return $this->contextual;
+        }
+
+        $contextual = [];
+
+        foreach ($this->index as $key => $replacement) {
+            $forms = $this->forms[$key] ?? [];
+
+            if (count($forms) > 1 && isset($this->entries[$replacement]) && ValueKey::isName((string) strstr((string) $key, '|', true))) {
+                $contextual[(string) $replacement] = $forms;
+            }
+        }
+
+        return $this->contextual = $contextual;
     }
 
     /**
@@ -313,6 +488,7 @@ final class TokenMap
             'entries' => $this->entries,
             'index' => $this->index,
             'counters' => $this->counters,
+            'forms' => $this->forms,
         ];
     }
 
@@ -322,6 +498,7 @@ final class TokenMap
             $payload['entries'] ?? [],
             $payload['index'] ?? [],
             $payload['counters'] ?? [],
+            $payload['forms'] ?? [],
         );
     }
 }

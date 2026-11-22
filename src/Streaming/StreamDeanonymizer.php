@@ -10,14 +10,15 @@ use EduLazaro\Laranon\Support\TokenMap;
  * inside a multibyte character. The tail of the buffer is held back while it
  * could still be the start of a replacement, and a whole replacement that
  * ends a word waits for the next character to know whether the word really
- * ends there. Nothing depends on the token delimiters, so it works the same
- * with a custom token_format.
+ * ends there. A name whose restored form depends on the next word (see
+ * TokenMap::restore()) waits for that word. Nothing depends on the token
+ * delimiters, so it works the same with a custom token_format.
  */
 class StreamDeanonymizer
 {
     protected string $buffer = '';
 
-    /** The last character already emitted, for the word boundary. */
+    /** The tail of what was already emitted, raw: word boundary and context. */
     protected string $before = '';
 
     /** @var array<string, true> */
@@ -45,12 +46,11 @@ class StreamDeanonymizer
     {
         $this->buffer .= $chunk;
 
-        $hold = $this->holdLength();
+        $hold = max($this->holdLength(), $this->contextHold());
         $ready = substr($this->buffer, 0, strlen($this->buffer) - $hold);
         $this->buffer = substr($this->buffer, strlen($ready));
 
-        $incomplete = $this->incompleteTail($this->buffer);
-        $after = $incomplete === strlen($this->buffer) ? '' : mb_substr($this->buffer, 0, 1);
+        $after = substr($this->buffer, 0, strlen($this->buffer) - $this->incompleteTail($this->buffer));
 
         return $this->emit($ready, $after);
     }
@@ -73,9 +73,48 @@ class StreamDeanonymizer
         }
 
         $out = $this->map->restore($raw, $this->before, $after);
-        $this->before = mb_substr($raw, -1);
+
+        // More than the restore window, so it cuts the context exactly where
+        // it would in the whole text; a character split at the start is
+        // dropped so the tail stays valid UTF-8.
+        $this->before = (string) preg_replace('/^[\x80-\xBF]+/', '', substr($this->before . $raw, -2 * TokenMap::CONTEXT_BYTES));
 
         return $out;
+    }
+
+    /**
+     * Bytes to keep so that a name token whose restored form depends on the
+     * next word (TokenMap::contextualReplacements()) waits for that word, the
+     * end of its line, or a full restore window after it. Then a stream
+     * restores exactly like the whole text would.
+     */
+    protected function contextHold(): int
+    {
+        $contextual = $this->map->contextualReplacements();
+
+        if ($contextual === []) {
+            return 0;
+        }
+
+        $blank = array_fill_keys(array_map('strval', array_keys($this->map->entries())), ' ');
+        $earliest = null;
+
+        foreach ($contextual as $replacement) {
+            $offset = 0;
+
+            while (($found = strpos($this->buffer, $replacement, $offset)) !== false) {
+                $offset = $found + strlen($replacement);
+                $tail = substr($this->buffer, $offset);
+
+                if (strlen($tail) >= TokenMap::CONTEXT_BYTES || str_contains($tail, "\n") || preg_match('/\p{L}{2,}/u', strtr($tail, $blank)) === 1) {
+                    continue;
+                }
+
+                $earliest = $earliest === null ? $found : min($earliest, $found);
+            }
+        }
+
+        return $earliest === null ? 0 : strlen($this->buffer) - $earliest;
     }
 
     /**

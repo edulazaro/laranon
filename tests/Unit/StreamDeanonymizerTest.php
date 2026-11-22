@@ -82,6 +82,32 @@ class StreamDeanonymizerTest extends TestCase
         }
     }
 
+    public function test_a_name_with_several_forms_streams_like_the_whole_text(): void
+    {
+        $map = new TokenMap(
+            ['«PER_1»' => 'JUAN', '«AP_1»' => 'GARCÍA'],
+            ['person|juan' => '«PER_1»', 'surname|garcia' => '«AP_1»'],
+            ['person' => 1, 'surname' => 1],
+            ['person|juan' => ['JUAN', 'Juan'], 'surname|garcia' => ['GARCÍA', 'García']],
+        );
+
+        $text = "PARTE: «PER_1» «AP_1»\nEl demandante «PER_1» «AP_1» reclama.";
+        $expected = "PARTE: JUAN GARCÍA\nEl demandante Juan García reclama.";
+
+        $this->assertSame($expected, $map->restore($text));
+
+        // Every pair of cut points, the multibyte « included.
+        for ($i = 0; $i <= strlen($text); $i++) {
+            for ($j = $i; $j <= strlen($text); $j++) {
+                $stream = new StreamDeanonymizer($map);
+                $out = $stream->push(substr($text, 0, $i)) . $stream->push(substr($text, $i, $j - $i))
+                    . $stream->push(substr($text, $j)) . $stream->flush();
+
+                $this->assertSame($expected, $out, "cut at {$i}/{$j}");
+            }
+        }
+    }
+
     public function test_lone_open_delimiter_does_not_stall_the_stream(): void
     {
         $stream = new StreamDeanonymizer(new TokenMap(['«PER_1»' => 'Ana']));

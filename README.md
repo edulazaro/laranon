@@ -28,7 +28,7 @@ $result->restore($llmResponse);
 - **Replacements never repeat.** The token map guarantees that two different values never share a replacement, whatever the strategy generates. A shared surrogate would merge two people and garble restoration.
 - **Known entities.** Feed the values you already have (client emails, phones, company names) for exact, total-recall matching where it matters most.
 - **Streaming-safe restore.** Replacements split across SSE chunks (tokens, faker surrogates, even a multibyte character cut in half) are buffered and restored correctly, with any `token_format`.
-- **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes".
+- **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes". A name the text writes in several ways ("García", "GARCÍA") shares one token and restores to the form that fits its line.
 
 ## Install
 
@@ -106,7 +106,8 @@ Person names are tokenized per WORD, never per person. "John Smith" becomes `«P
 - "John Baker" becomes `«PER_1» «AP_2»`: same given-name token, different surname token, which is exactly the information a human reader has.
 - "Mr. Baker" becomes "Mr. `«AP_2»`", sharing the token of the "Baker" in "John Baker". Honorifics themselves stay in cleartext.
 - Grammatical particles stay in cleartext too: "John de la Cruz" reads `«PER_1» de la «AP_3»`.
-- Restoration is exact: each token maps back to the literal word.
+- The ways a document writes a word ("García", "GARCÍA", "GARCIA") share its token, so the model sees one person. Case and accents are ignored, ñ and ç are not (Peña and Pena are different surnames).
+- Restoration is exact: each token maps back to the literal word. A word seen in several forms restores to the one that fits its line: the capitals form among words in capitals ("PARTE: JUAN GARCÍA"), the other one in running text ("el demandante Juan García"). A word seen in one form always restores to exactly that form.
 
 Honorific conventions drive the typing of lone words: `Mr./Mrs./Dr./Sr./Sra.` introduce a surname ("Mr. Smith", "Sr. García"), while `D./Dña./Don/Doña/Sir/Lady` introduce a given name ("Sir Ian", "Doña Luz"). With several words, the first is the given name and the rest are surnames ("Mr. James Miller", "D. Juan Pérez García").
 
@@ -237,7 +238,7 @@ Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gate
 
 Person names combine honorific triggers (D., Dña., Sr., Mr., Dr...) with gazetteer-gated capitalized sequences: a run of 2+ capitalized words only counts once its first token is a known given name, and a last-token hit in the surname gazetteer bumps confidence. Every match is split into per-word spans (`person` for the given name, `surname` for each surname word). A curated list of names that are also plain nouns ("Luz", "Rose", "Faith"...) requires a confirmed surname before matching at all, so bare "Luz" is left alone but "Luz Martínez" is not (honorific patterns skip the gazetteer, so "Dña. Luz" still matches on its own). Grammatical particles and honorific titles never gate a match or become name spans, even when census artifacts list them as given names.
 
-In Spanish, honorifics match in any case (`DON JUAN`, `don Juan`, `SR. GARCÍA`), and all-caps names without one ("Comparece JUAN GARCÍA LÓPEZ"), the way escrituras and court documents write them, are found too. An all-caps run must start with a known given name **and** end with a known surname, so headings such as "TRIBUNAL SUPREMO" or "SEGUNDO MOTIVO" are left alone. A name in capitals and the same name in mixed case get different tokens ("GARCÍA" and "García"), because restoration is byte for byte.
+In Spanish, honorifics match in any case (`DON JUAN`, `don Juan`, `SR. GARCÍA`), and all-caps names without one ("Comparece JUAN GARCÍA LÓPEZ"), the way escrituras and court documents write them, are found too. An all-caps run must start with a known given name **and** end with a known surname, so headings such as "TRIBUNAL SUPREMO" or "SEGUNDO MOTIVO" are left alone. A name in capitals and the same name in mixed case share their tokens (see "Per-word name tokens").
 
 The bundled dictionaries (`data/`) are built from official sources, not toy lists:
 

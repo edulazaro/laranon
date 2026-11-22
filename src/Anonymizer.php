@@ -10,6 +10,7 @@ use EduLazaro\Laranon\Support\AnonymizedText;
 use EduLazaro\Laranon\Support\Span;
 use EduLazaro\Laranon\Support\SpanResolver;
 use EduLazaro\Laranon\Support\TokenMap;
+use EduLazaro\Laranon\Support\ValueKey;
 use Illuminate\Contracts\Cache\LockProvider;
 use InvalidArgumentException;
 
@@ -321,7 +322,9 @@ class Anonymizer
      * as an exact, case-sensitive, word-bounded literal, and each bare
      * occurrence gets that word's own token. No identity is guessed: the
      * token belongs to the WORD, not to a person, so it is correct by
-     * construction no matter how many people share it.
+     * construction no matter how many people share it. The other ways a
+     * document writes the word are swept too (see writtenForms()), and they
+     * share its token.
      *
      * @param array<int, Span> $spans
      * @return array<int, Span>
@@ -349,24 +352,40 @@ class Anonymizer
         $swept = [];
 
         foreach ($known as $literal => $type) {
-            $pattern = '/(?<![\p{L}\p{N}])' . preg_quote((string) $literal, '/') . '(?![\p{L}\p{N}])/u';
+            foreach ($this->writtenForms((string) $literal) as $form) {
+                $pattern = '/(?<![\p{L}\p{N}])' . preg_quote($form, '/') . '(?![\p{L}\p{N}])/u';
 
-            if (! preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
-                continue;
-            }
-
-            foreach ($matches[0] as [$found, $offset]) {
-                $bare = new Span($offset, strlen($found), $type, $found, 0.85);
-
-                if ($this->overlapsAny($bare, $spans) || $this->overlapsAny($bare, $swept)) {
+                if (! preg_match_all($pattern, $text, $matches, PREG_OFFSET_CAPTURE)) {
                     continue;
                 }
 
-                $swept[] = $bare;
+                foreach ($matches[0] as [$found, $offset]) {
+                    $bare = new Span($offset, strlen($found), $type, $found, 0.85);
+
+                    if ($this->overlapsAny($bare, $spans) || $this->overlapsAny($bare, $swept)) {
+                        continue;
+                    }
+
+                    $swept[] = $bare;
+                }
             }
         }
 
         return array_merge($spans, $swept);
+    }
+
+    /**
+     * The ways a document writes a name word: as seen, with an initial
+     * capital, and in capitals with and without accents. Never in lowercase:
+     * a surname like "Rey" would otherwise take "el rey" anywhere.
+     *
+     * @return array<int, string>
+     */
+    protected function writtenForms(string $word): array
+    {
+        $capitals = mb_strtoupper($word);
+
+        return array_values(array_unique([$word, mb_convert_case($word, MB_CASE_TITLE), $capitals, ValueKey::withoutAccents($capitals)]));
     }
 
     /**
