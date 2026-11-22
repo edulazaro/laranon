@@ -268,10 +268,10 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 
 | File | Entries | Source |
 | --- | --- | --- |
-| `data/es/names.php` | ~16,600 | INE, national census, frequency >= 20 (via [marcboquet/spanish-names](https://github.com/marcboquet/spanish-names)) |
+| `data/es/names.php` | ~22,000 | INE, annual census at 1 January 2025, frequency >= 20, plus the names of the 2012 list (via [marcboquet/spanish-names](https://github.com/marcboquet/spanish-names)) that have since dropped under 20 bearers; a rare new name that is also a surname (Sala, Valencia) is left out |
 | `data/es/surnames.php` | ~24,300 | INE, national census, frequency >= 20 |
 | `data/es/names_ambiguous.php` | 34 | hand-curated (Marian and virtue names) |
-| `data/es/names_gender.php` | ~15,800 | INE, by first given name: `f` or `m` when 95% or more of the people bearing it share it; ambiguous names left out |
+| `data/es/names_gender.php` | ~20,900 | INE (2025, 2012 for older names), by first given name: `f` or `m` when 95% or more of the people bearing it share it; ambiguous names left out |
 | `data/en/names.php` | ~7,300 | US SSA baby name applications, aggregate occurrences >= 100 (via [hackerb9/ssa-baby-names](https://github.com/hackerb9/ssa-baby-names)) |
 | `data/en/surnames.php` | ~162,000 | US Census Bureau, 2010 release, count >= 100 |
 | `data/en/names_ambiguous.php` | 31 | hand-curated (flower, gem and virtue names) |
