@@ -39,7 +39,7 @@ class FakerStrategy implements Strategy
         'Natalia', 'Silvia', 'Raquel', 'Patricia', 'Teresa', 'Cristina', 'Lorena', 'Noelia',
         'Susana', 'Verónica', 'Miriam', 'Nuria', 'Eva', 'Ainhoa', 'Julia', 'Lidia',
         'Laura', 'Paula', 'Claudia', 'Alicia', 'Carolina', 'Mónica', 'Sonia', 'Yolanda',
-        'Sandra', 'Isabel', 'Esther', 'Rebeca', 'Olga', 'Carmen', 'Celia', 'Leire',
+        'Sandra', 'Isabel', 'Esther', 'Lara', 'Olga', 'Carmen', 'Celia', 'Leire',
         'Itziar', 'Amaia', 'Begoña', 'Alejandra', 'Ariadna', 'Vanesa', 'Tamara', 'Jimena',
         'Adriana', 'Daniela',
     ];
@@ -49,7 +49,7 @@ class FakerStrategy implements Strategy
         'Álvaro', 'Gonzalo', 'Rubén', 'Sergio', 'Óscar', 'Víctor', 'Daniel', 'Alberto',
         'Ignacio', 'Fernando', 'Ricardo', 'Rodrigo', 'Tomás', 'Joaquín', 'Enrique', 'Gabriel',
         'Héctor', 'Raúl', 'Manuel', 'Francisco', 'Antonio', 'Miguel', 'Luis', 'Alejandro',
-        'Rafael', 'Jorge', 'Iván', 'Marcos', 'Eduardo', 'Samuel', 'Nicolás', 'Emilio',
+        'Rafael', 'Jorge', 'Iván', 'Marcelo', 'Eduardo', 'Samuel', 'Nicolás', 'Emilio',
         'Gerardo', 'Julián', 'Agustín', 'Lorenzo', 'Esteban', 'Bruno', 'Iker', 'Aitor',
         'Jaime', 'Guillermo',
     ];
