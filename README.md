@@ -28,7 +28,7 @@ $result->restore($llmResponse);
 - **Replacements never repeat.** The token map guarantees that two different values never share a replacement, whatever the strategy generates. A shared surrogate would merge two people and garble restoration.
 - **Known entities.** Feed the values you already have (client emails, phones, company names) for exact, total-recall matching where it matters most.
 - **Streaming-safe restore.** Replacements split across SSE chunks (tokens, faker surrogates, even a multibyte character cut in half) are buffered and restored correctly, with any `token_format`.
-- **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes". A name the text writes in several ways ("García", "GARCÍA") shares one token and restores to the form that fits its line.
+- **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes". A name the text writes in several ways ("García", "GARCÍA") shares one token and restores to the form that fits its line. So does an identifier ("12345678Z" and "12.345.678-Z", "+34 600 123 123" and "600123123", an email in any case), which restores to the form seen first.
 
 ## Install
 

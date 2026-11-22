@@ -4,10 +4,16 @@ namespace EduLazaro\Laranon\Support;
 
 /**
  * The key under which the TokenMap groups the ways of writing one value, so
- * they all share a token and the model sees one person, not three. Name
- * words and known entities ignore case and accents ("García", "GARCÍA" and
- * "GARCIA" are one surname) but keep ñ and ç, which make different names
- * (Peña, Pena). Any other type is taken literally.
+ * they all share a token and the model sees one person, not three:
+ *
+ *   - Name words and known entities ignore case and accents ("García",
+ *     "GARCÍA" and "GARCIA" are one surname) but keep ñ and ç, which make
+ *     different names (Peña, Pena).
+ *   - Identifiers ignore separators and case ("12345678Z", "12.345.678-z").
+ *   - Phones keep their digits, without a Spanish country prefix.
+ *   - Emails ignore case.
+ *
+ * Any other type is taken literally.
  */
 final class ValueKey
 {
@@ -16,6 +22,12 @@ final class ValueKey
      * that fits the surrounding text (see TokenMap::restore()).
      */
     public const NAME_TYPES = ['person', 'surname', 'entity'];
+
+    /**
+     * Types grouped regardless of separators and case. Their tokens restore
+     * to the form seen first.
+     */
+    public const IDENTIFIER_TYPES = ['dni', 'nie', 'cif', 'vat', 'nss', 'ccc', 'iban', 'credit_card', 'plate', 'ssn', 'nino', 'passport'];
 
     protected const ACCENTS = [
         'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a',
@@ -34,11 +46,32 @@ final class ValueKey
 
     public static function of(string $type, string $value): string
     {
-        if (self::isName($type)) {
-            return self::withoutAccents(mb_strtolower(strtr($value, self::HYPHENS)));
+        return match (true) {
+            self::isName($type) => self::withoutAccents(mb_strtolower(strtr($value, self::HYPHENS))),
+            in_array($type, self::IDENTIFIER_TYPES, true) => strtoupper(Separators::strip($value, './')),
+            $type === 'phone' => self::phone($value),
+            $type === 'email' => mb_strtolower($value),
+            default => $value,
+        };
+    }
+
+    /**
+     * The digits of a phone, without a Spanish country prefix: "+34 600 123
+     * 123", "0034600123123" and "600 12 31 23" are one number.
+     */
+    protected static function phone(string $value): string
+    {
+        $digits = (string) preg_replace('/\D/', '', $value);
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
         }
 
-        return $value;
+        if (strlen($digits) === 11 && str_starts_with($digits, '34')) {
+            $digits = substr($digits, 2);
+        }
+
+        return $digits;
     }
 
     public static function isName(string $type): bool

@@ -38,6 +38,27 @@ class TokenMapTest extends TestCase
         $this->assertSame(['García', 'GARCÍA', 'GARCIA', 'Peña', 'PENA'], $map->valuesForType('surname'));
     }
 
+    public function test_identifiers_written_in_several_ways_share_a_token(): void
+    {
+        $map = new TokenMap();
+        $strategy = new TokenStrategy('«%s_%d»', ['dni' => 'DNI', 'phone' => 'TEL', 'email' => 'EMAIL', 'iban' => 'IBAN']);
+        $token = fn (string $type, string $value) => $map->replacementFor(new Span(0, strlen($value), $type, $value), $strategy);
+
+        $this->assertSame('«DNI_1»', $token('dni', '12345678Z'));
+        $this->assertSame('«DNI_1»', $token('dni', '12.345.678-z'));
+        $this->assertSame('«TEL_1»', $token('phone', '+34 600 123 123'));
+        $this->assertSame('«TEL_1»', $token('phone', '600123123'));
+        $this->assertSame('«TEL_1»', $token('phone', '0034 600 12 31 23'));
+        $this->assertSame('«TEL_2»', $token('phone', '+44 20 7946 0958'));
+        $this->assertSame('«EMAIL_1»', $token('email', 'Juan@Example.com'));
+        $this->assertSame('«EMAIL_1»', $token('email', 'juan@example.com'));
+        $this->assertSame('«IBAN_1»', $token('iban', 'ES91 2100 0418 4502 0005 1332'));
+        $this->assertSame('«IBAN_1»', $token('iban', 'ES9121000418450200051332'));
+
+        // Each restores to the form seen first.
+        $this->assertSame('12345678Z, +34 600 123 123', $map->restore('«DNI_1», «TEL_1»'));
+    }
+
     public function test_a_map_saved_by_1_2_still_groups_its_values(): void
     {
         $map = TokenMap::fromArray([

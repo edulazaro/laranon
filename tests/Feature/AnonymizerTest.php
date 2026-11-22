@@ -100,6 +100,13 @@ class AnonymizerTest extends TestCase
         $this->assertSame('PARTE: Juan García', $result->restore('PARTE: «PER_1» «AP_1»'));
     }
 
+    public function test_an_identifier_written_in_several_ways_shares_its_token(): void
+    {
+        $result = $this->anonymizer()->anonymize('DNI 12345678Z, también escrito 12.345.678-Z, y teléfono +34 600 123 123 o 600123123.');
+
+        $this->assertSame('DNI «DNI_1», también escrito «DNI_1», y teléfono «TEL_1» o «TEL_1».', $result->text);
+    }
+
     public function test_a_known_entity_in_capitals_shares_its_token(): void
     {
         $result = $this->anonymizer()->withEntities(['Acme Health'])->anonymize('ACME HEALTH contra Acme Health.');
