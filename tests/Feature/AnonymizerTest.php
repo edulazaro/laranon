@@ -275,6 +275,66 @@ class AnonymizerTest extends TestCase
         $this->assertSame('DNI «DNI_1».', $session->anonymize('DNI 12345678Z.'));
     }
 
+    public function test_concurrent_calls_on_a_scope_are_serialized(): void
+    {
+        $this->app['config']->set('laranon.vault.lock_wait', 0);
+
+        // Request B arrives between A's read of the vault and A's write.
+        $vault = new class(new ArrayVaultStore()) implements VaultStore
+        {
+            public ?Closure $between = null;
+
+            public function __construct(protected VaultStore $inner)
+            {
+            }
+
+            public function get(string $key): ?array
+            {
+                $payload = $this->inner->get($key);
+
+                if ($between = $this->between) {
+                    $this->between = null;
+                    $between();
+                }
+
+                return $payload;
+            }
+
+            public function put(string $key, array $payload, ?int $ttl = null): void
+            {
+                $this->inner->put($key, $payload, $ttl);
+            }
+
+            public function forget(string $key): void
+            {
+                $this->inner->forget($key);
+            }
+        };
+
+        $this->app->instance(VaultStore::class, $vault);
+
+        $blocked = null;
+
+        $vault->between = function () use (&$blocked) {
+            try {
+                $this->anonymizer()->scope('exp-race')->anonymize('B: DNI 87654321X.');
+            } catch (LockTimeoutException $e) {
+                $blocked = $e;
+            }
+        };
+
+        $a = $this->anonymizer()->scope('exp-race')->anonymize('A: DNI 12345678Z.');
+
+        $this->assertInstanceOf(LockTimeoutException::class, $blocked);
+        $this->assertSame('A: DNI 12345678Z.', $this->anonymizer()->scope('exp-race')->restore($a->text));
+
+        // Once A is done, B goes through on top of A's map.
+        $b = $this->anonymizer()->scope('exp-race')->anonymize('B: DNI 87654321X.');
+
+        $this->assertSame('B: DNI «DNI_2».', $b->text);
+        $this->assertSame('B: DNI 87654321X.', $this->anonymizer()->scope('exp-race')->restore($b->text));
+    }
+
     public function test_faker_never_picks_a_surrogate_already_in_the_text(): void
     {
         // Whatever surname López gets, one of these texts already contains

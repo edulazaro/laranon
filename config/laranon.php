@@ -99,6 +99,11 @@ return [
     | same person across a whole conversation. Payloads are encrypted with the
     | app key. Stores: cache, database, array (in-memory, single request).
     |
+    | Every scoped anonymize() locks its scope on the default cache store, so
+    | two concurrent requests never hand out the same token to two values.
+    | lock_wait is how many seconds a call waits for a busy scope before
+    | throwing LockTimeoutException.
+    |
     */
 
     'vault' => [
@@ -106,6 +111,7 @@ return [
         'cache_prefix' => 'laranon:',
         'ttl' => 21600,
         'table' => 'laranon_vaults',
+        'lock_wait' => 10,
     ],
 
     /*

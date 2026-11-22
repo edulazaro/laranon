@@ -128,6 +128,8 @@ Laranon::scope('chat-42')->forget();
 
 Scoped maps persist encrypted (app key) in the configured vault: `cache` (default, TTL-expiring), `database` (survives days, for queued jobs) or `array` (single request). Each `anonymize()` call scans only the new text; name words already tokenized in the scope are swept in that new text as exact, word-bounded literals, so a bare "John" in turn 5 reuses the token established in turn 1.
 
+A scoped `anonymize()` reads the map, extends it and writes it back under a lock on the default cache store, so two concurrent requests on one scope (two queued jobs on the same case) never hand out `«DNI_1»` to two different values. A call waits up to `vault.lock_wait` seconds (10 by default) for a busy scope and then throws `LockTimeoutException`. Sessions hold no shared state and take no lock.
+
 ### Strategies
 
 ```php

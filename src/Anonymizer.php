@@ -10,6 +10,7 @@ use EduLazaro\Laranon\Support\AnonymizedText;
 use EduLazaro\Laranon\Support\Span;
 use EduLazaro\Laranon\Support\SpanResolver;
 use EduLazaro\Laranon\Support\TokenMap;
+use Illuminate\Contracts\Cache\LockProvider;
 use InvalidArgumentException;
 
 /**
@@ -20,6 +21,11 @@ use InvalidArgumentException;
  */
 class Anonymizer
 {
+    /**
+     * How long a scope lock lives if its holder dies mid-call.
+     */
+    protected const LOCK_SECONDS = 30;
+
     protected ?string $scope = null;
 
     /** @var array<int, string>|null */
@@ -51,6 +57,8 @@ class Anonymizer
         protected ?int $ttl = null,
         protected string $tokenOpen = '«',
         protected string $tokenClose = '»',
+        protected ?LockProvider $locks = null,
+        protected int $lockWait = 10,
     ) {
     }
 
@@ -184,18 +192,38 @@ class Anonymizer
 
     /**
      * Detect and replace PII. Returns the scrubbed text plus the token map.
+     *
+     * Under a scope, loading the map, extending it and writing it back runs
+     * under a lock: two requests on the same scope would otherwise both hand
+     * out «DNI_1» to different values, and the last write would make the
+     * first one restore to the other person's DNI. Throws
+     * Illuminate\Contracts\Cache\LockTimeoutException if the scope stays
+     * busy for longer than vault.lock_wait seconds.
      */
     public function anonymize(string $text): AnonymizedText
     {
-        $map = $this->loadMap();
+        return $this->underScopeLock(function () use ($text): AnonymizedText {
+            $map = $this->loadMap();
 
-        $this->applyPresets($map);
+            $this->applyPresets($map);
 
-        $text = $this->anonymizeString($text, $map);
+            $text = $this->anonymizeString($text, $map);
 
-        $this->persistMap($map);
+            $this->persistMap($map);
 
-        return new AnonymizedText($text, $map);
+            return new AnonymizedText($text, $map);
+        });
+    }
+
+    protected function underScopeLock(callable $callback): mixed
+    {
+        if ($this->scope === null || $this->locks === null) {
+            return $callback();
+        }
+
+        return $this->locks
+            ->lock('laranon-lock:' . $this->scope, self::LOCK_SECONDS)
+            ->block($this->lockWait, $callback);
     }
 
     protected function applyPresets(TokenMap $map): void

@@ -11,6 +11,7 @@ use EduLazaro\Laranon\Strategies\TokenStrategy;
 use EduLazaro\Laranon\Vault\ArrayVaultStore;
 use EduLazaro\Laranon\Vault\CacheVaultStore;
 use EduLazaro\Laranon\Vault\DatabaseVaultStore;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Support\ServiceProvider;
 
 class LaranonServiceProvider extends ServiceProvider
@@ -39,6 +40,7 @@ class LaranonServiceProvider extends ServiceProvider
 
         $this->app->singleton(Anonymizer::class, function ($app) {
             $config = $app['config']['laranon'] ?? [];
+            $locks = $app['cache']->store()->getStore();
 
             return new Anonymizer(
                 recognizers: $this->buildRecognizers($config),
@@ -46,6 +48,8 @@ class LaranonServiceProvider extends ServiceProvider
                 defaultStrategy: $config['strategy'] ?? 'token',
                 vault: $app->make(VaultStore::class),
                 ttl: $config['vault']['ttl'] ?? null,
+                locks: $locks instanceof LockProvider ? $locks : null,
+                lockWait: $config['vault']['lock_wait'] ?? 10,
             );
         });
 
