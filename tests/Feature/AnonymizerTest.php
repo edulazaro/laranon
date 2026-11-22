@@ -275,6 +275,13 @@ class AnonymizerTest extends TestCase
         $this->assertSame('«PER_M_1» «AP_1» «AP_2»', Anonymizer::create()->anonymize('Jordi Sans Vidal'));
     }
 
+    public function test_real_decreto_is_not_a_person_when_language_is_unclear(): void
+    {
+        $citation = 'Ley 1/2000, Real Decreto 1720/2007, Ley Orgánica 3/2018.';
+
+        $this->assertSame($citation, (string) Anonymizer::create()->anonymize($citation));
+    }
+
     public function test_the_judges_of_a_cendoj_heading(): void
     {
         $heading = "Sentencia núm. 1313/2026\nExcmas. Sras. y Excmos. Sres.\nD.ª M.ª Ángeles Parra Lucán\nD. Antonio García Martínez";

@@ -415,6 +415,12 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
         $lastToken = $tokens[array_key_last($tokens)];
         $surnameConfirmed = $this->isSurname($lastToken[0]);
 
+        // French lists include Réal as a given name and Decreto as a surname.
+        // In legal citations, "Real Decreto" names a regulation.
+        if ($first === 'real' && isset($tokens[$start + 1]) && $this->parts($tokens[$start + 1][0])[0] === 'decreto') {
+            return [];
+        }
+
         if (isset($this->ambiguousNames()[$first]) && (! $surnameConfirmed || $this->followsArticle($restOffset))) {
             // "Luz"/"Rose"/"Faith" read as the common word far more often
             // than as a bare, surname-less mention of the person, and so does
