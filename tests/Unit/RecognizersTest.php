@@ -37,6 +37,20 @@ class RecognizersTest extends TestCase
         $this->assertSame('ES91 2100 0418 4502 0005 1332', $spans[0]->value);
     }
 
+    public function test_iban_followed_by_an_uppercase_word_is_still_detected(): void
+    {
+        foreach ([
+            'CUENTA ES91 2100 0418 4502 0005 1332 DEL TITULAR',
+            'IBAN ES91 2100 0418 4502 0005 1332 EN CAIXABANK',
+            'IBAN ES91 2100 0418 4502 0005 1332 1234 EUR',
+        ] as $text) {
+            $spans = (new IbanRecognizer())->detect($text);
+
+            $this->assertCount(1, $spans, $text);
+            $this->assertSame('ES91 2100 0418 4502 0005 1332', $spans[0]->value, $text);
+        }
+    }
+
     public function test_person_name_via_honorific_splits_into_word_spans(): void
     {
         // The honorific and the plain pattern both hit here; SpanResolver
