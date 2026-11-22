@@ -54,7 +54,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      * left out: "García al Juzgado" is a sentence, not a name.
      */
     protected const PARTICLES = 'della|dello|delle|degli|dei|dels|del|des|de(?:\s+l(?:a|os|as))?|du|das|da|dos|do|di|la|le|lo'
-        . '|van(?:\s+de[rn]?)?|von(?:\s+der)?|der|den|ten|ter|bint|bin|ibn|ben';
+        . '|van(?:\s+de[rn]?)?|von(?:\s+der)?|vom|zur|zu|der|den|ten|ter|bint|bin|ibn|ben';
 
     /**
      * The single words of PARTICLES, kept in cleartext when written in
@@ -62,7 +62,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      */
     protected const PARTICLE_WORDS = [
         'della', 'dello', 'delle', 'degli', 'dei', 'dels', 'des', 'du', 'das', 'da', 'dos', 'do', 'di', 'le', 'lo',
-        'van', 'von', 'der', 'den', 'ten', 'ter', 'bint', 'bin', 'ibn', 'ben',
+        'van', 'von', 'vom', 'zu', 'zur', 'der', 'den', 'ten', 'ter', 'bint', 'bin', 'ibn', 'ben',
     ];
 
     /** @var array<string, true>|null */
@@ -717,7 +717,7 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
     }
 
     /**
-     * The closed classes of Spanish, Catalan, English, French and Italian grammar: prepositions,
+     * The closed classes of Spanish, Catalan, English, French, Italian, German, Dutch and Portuguese grammar: prepositions,
      * articles and contractions, determiners, possessives, pronouns and
      * conjunctions, plus the forms of "be" and "have". They open sentences
      * and clauses ("Esta Sala", "Si Juan García", "Sobre la base", "Per the
@@ -727,8 +727,9 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
      * and a name ends where one appears. The particles of names (de, del,
      * la, le, du, van, da...) are not here, and neither are the words that
      * are also frequent names or surnames: Ai, Alla, Come (Côme), Dai,
-     * Ed, Ella, Elle, Ha, Han, He, Jo, Lei, Ma, Mas, Mia, Nel, Nella, Ni,
-     * Ou, Perche, Prima, Quan, Queste, Sa, Son, Su, Sue, Tu.
+     * Dan, Dit, Ed, Ela, Ella, Elle, Fur, Ha, Han, He, Jo, Lei, Ma, Mas,
+     * Mia, Nao, Nel, Nella, Ni, Nur, Ou, Perche, Prima, Quan, Queste, Sa,
+     * Seine, Son, Su, Sue, Tu, Uma, Vos.
      *
      * @return array<int, string>
      */
@@ -797,6 +798,24 @@ abstract class NameRecognizer implements Recognizer, LanguageScoped
             'altro', 'altri', 'altre', 'stesso', 'stessa', 'detto', 'detta', 'suddetto',
             // Italian forms of essere and avere.
             'sono', 'hanno', 'essere', 'stato', 'stata',
+            // German articles, prepositions, pronouns and conjunctions (nouns are
+            // capitalized in German, so these matter at every sentence start).
+            'die', 'das', 'dem', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines', 'und', 'oder', 'aber',
+            'mit', 'auf', 'aus', 'bei', 'nach', 'uber', 'unter', 'vor', 'durch', 'gegen', 'ohne', 'um', 'wie',
+            'wenn', 'dass', 'nicht', 'auch', 'sich', 'er', 'sie', 'wir', 'ihr', 'ich', 'ihnen', 'sein', 'ihre',
+            'dieser', 'diese', 'dieses', 'jeder', 'alle', 'noch', 'hier', 'dort', 'zum', 'im', 'am', 'beim',
+            'ist', 'sind', 'war', 'hat', 'haben', 'wird', 'werden',
+            // Dutch articles, prepositions, pronouns and conjunctions.
+            'het', 'een', 'maar', 'met', 'voor', 'aan', 'uit', 'bij', 'naar', 'over', 'onder', 'door', 'tegen',
+            'zonder', 'om', 'dat', 'dit', 'deze', 'hij', 'zij', 'ze', 'wij', 'jij', 'je', 'ik', 'haar', 'hun',
+            'ons', 'onze', 'mijn', 'uw', 'geen', 'elk', 'ieder', 'wie', 'wat', 'waar', 'wanneer', 'omdat',
+            'want', 'dus', 'nog', 'er', 'daar', 'zo', 'zijn', 'heeft', 'hebben', 'wordt', 'worden', 'niet', 'ook',
+            'zich',
+            // Portuguese articles, contractions, prepositions, pronouns and conjunctions.
+            'os', 'as', 'um', 'uns', 'umas', 'em', 'na', 'nos', 'nas', 'ao', 'aos', 'pelo', 'pela', 'pelos',
+            'pelas', 'com', 'sem', 'sob', 'ate', 'desde', 'onde', 'esse', 'essa', 'isso', 'isto',
+            'aquele', 'aquela', 'seus', 'suas', 'minha', 'nosso', 'nossa', 'ele', 'eles', 'elas', 'voce',
+            'voces', 'eu', 'foi', 'tem', 'todo', 'mesma', 'dito', 'dita',
         ];
     }
 

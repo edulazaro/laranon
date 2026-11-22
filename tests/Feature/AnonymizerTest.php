@@ -159,7 +159,7 @@ class AnonymizerTest extends TestCase
 
         $this->assertSame('es', $session->map()->language());
         $this->assertSame(['es'], $this->anonymizer()->languagesFor('612345678', $session->map()));
-        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca', 'it', 'de', 'nl', 'pt'], $this->anonymizer()->languagesFor('612345678', new TokenMap()));
     }
 
     public function test_a_text_in_a_language_with_no_pack_is_read_in_all(): void
@@ -167,7 +167,7 @@ class AnonymizerTest extends TestCase
         $polish = 'Pozwany zakwestionował roszczenie i wniósł o oddalenie powództwa w całości, ponieważ umowa nie została skutecznie zawarta, '
             . 'a powód nie wykazał, że spełnił wszystkie warunki przewidziane w umowie oraz w przepisach prawa cywilnego obowiązujących w dniu jej zawarcia.';
 
-        $this->assertSame(['es', 'en', 'fr', 'ca', 'it'], $this->anonymizer()->languagesFor($polish, new TokenMap()));
+        $this->assertSame(['es', 'en', 'fr', 'ca', 'it', 'de', 'nl', 'pt'], $this->anonymizer()->languagesFor($polish, new TokenMap()));
     }
 
     public function test_a_french_text_is_read_with_the_french_pack(): void
@@ -190,6 +190,13 @@ class AnonymizerTest extends TestCase
             "Il Tribunale di Milano, nella causa promossa da «AP_1» «PER_1» contro la società, ha accolto il ricorso.",
             $this->anonymizer()->anonymize($text)->text,
         );
+    }
+
+    public function test_german_dutch_and_portuguese_texts_are_read_with_their_packs(): void
+    {
+        $this->assertSame(['de'], $this->anonymizer()->languagesFor('Der Kläger hat gegen die Beklagte Klage erhoben, weil der Vertrag nicht erfüllt wurde und die Zahlung ausblieb.', new TokenMap()));
+        $this->assertSame(['nl'], $this->anonymizer()->languagesFor('De rechtbank heeft het beroep afgewezen omdat de overeenkomst niet op tijd is ondertekend door de partijen.', new TokenMap()));
+        $this->assertSame(['pt'], $this->anonymizer()->languagesFor('O tribunal julgou improcedente o recurso porque o contrato não foi assinado pelas partes dentro do prazo.', new TokenMap()));
     }
 
     public function test_a_pack_removed_from_the_locales_is_never_used(): void

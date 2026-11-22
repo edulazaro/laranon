@@ -549,12 +549,48 @@ class RecognizersTest extends TestCase
         $this->assertNull(SpanResolver::resolve($it->detect('Andrea Bocelli canta.'))[0]->gender);
     }
 
+    public function test_german_names_end_at_a_noun(): void
+    {
+        $de = new \EduLazaro\Laranon\Recognizers\De\PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($de->detect($text)));
+
+        $this->assertSame(['Peter', 'Müller'], $values('Herr Peter Müller wohnt in Berlin.'));
+        $this->assertSame(['Thomas', 'Schmidt'], $values('Thomas Schmidt hat den Vertrag unterzeichnet.'));
+        $this->assertSame(['Ursula', 'Leyen'], $values('Ursula von der Leyen spricht.'));
+        $this->assertSame(['Angela', 'Merkel'], $values('Frau Dr. Angela Merkel spricht.'));
+
+        // Every noun is capitalized in German: "Geld" is not a surname.
+        $this->assertSame([], $values('Gestern hat Peter Geld bekommen.'));
+    }
+
+    public function test_dutch_names_with_their_particles(): void
+    {
+        $nl = new \EduLazaro\Laranon\Recognizers\Nl\PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($nl->detect($text)));
+
+        $this->assertSame(['Jan', 'Berg'], $values('De heer Jan van der Berg tekent.'));
+        $this->assertSame(['Pieter', 'Janssen'], $values('Het beroep van Pieter Janssen is afgewezen.'));
+        $this->assertSame([], $values('De rechtbank Amsterdam heeft beslist.'));
+    }
+
+    public function test_portuguese_names_with_dom_dona_and_their_particles(): void
+    {
+        $pt = new \EduLazaro\Laranon\Recognizers\Pt\PersonNameRecognizer();
+        $typed = fn (string $text) => array_map(fn ($span) => [$span->value, $span->type], SpanResolver::resolve($pt->detect($text)));
+
+        $this->assertSame([['Maria', 'person'], ['Santos', 'surname']], $typed('A Dona Maria dos Santos assinou.'));
+        $this->assertSame([['António', 'person'], ['Ferreira', 'surname'], ['Costa', 'surname']], $typed('O recurso de António Ferreira Costa.'));
+        $this->assertSame([], $typed('O Tribunal da Relação do Porto julgou.'));
+    }
+
     public function test_a_name_that_is_a_word_is_the_word_after_an_article(): void
     {
         $es = new PersonNameRecognizer();
+        $pt = new \EduLazaro\Laranon\Recognizers\Pt\PersonNameRecognizer();
         $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
 
         $this->assertSame([], $values($es, 'Rumbo a la Rosa de los Vientos.'));
+        $this->assertSame([], $values($pt, 'A Graça de Deus.'));
         $this->assertSame(['Rosa', 'Martínez'], $values($es, 'Firma Rosa Martínez.'));
     }
 

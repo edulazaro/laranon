@@ -213,9 +213,9 @@ Laranon::except('url')->anonymize($text);
 
 ### Languages
 
-Every pack (`es`, `en`, `fr`, `ca`, `it`) is available, and each text is read with the ones of the languages it is written in. Identifiers with a checksum or an unmistakable shape (DNI, NIE, CIF, IBAN, cards, emails, phones with a country prefix) are found in every text, since a DNI can appear in an English contract. What depends on the language is the rest: person names, with their particles, honorifics and grammar, and the values with no checksum that look like ordinary numbers elsewhere (phones with no prefix, postal codes, plates, SSN).
+Every pack (`es`, `en`, `fr`, `ca`, `it`, `de`, `nl`, `pt`) is available, and each text is read with the ones of the languages it is written in. Identifiers with a checksum or an unmistakable shape (DNI, NIE, CIF, IBAN, cards, emails, phones with a country prefix) are found in every text, since a DNI can appear in an English contract. What depends on the language is the rest: person names, with their particles, honorifics and grammar, and the values with no checksum that look like ordinary numbers elsewhere (phones with no prefix, postal codes, plates, SSN).
 
-The language is told per paragraph, so a Spanish document with a passage pasted in English is read in both. A paragraph long enough is told by its letter n-grams (see [Language detection](#language-detection)); a short one, by its grammatical words ("Llamar al 612345678" has the "al" of Spanish and Catalan, and both read Spanish phones). With nothing to go by, such as digits alone, the language last told clearly in the scope or the session is used, if any. And when none of that gives a language, or the text is clearly in a language with no pack, every pack reads it, so a name is never lost to a wrong guess. A session (`Anonymizer::create()`) tells it once for all the strings it is given, so a short message is read in the conversation's language.
+The language is told per paragraph, so a Spanish document with a passage pasted in English is read in both. A paragraph with as many letter n-grams as a language profile ranks (310) is told by them (see [Language detection](#language-detection)); a shorter one, by its grammatical words, since n-grams mislead between close languages on a short line ("Llamar al 612345678" has the "al" of Spanish and Catalan, and both read Spanish phones). With nothing to go by, such as digits alone, the language last told clearly in the scope or the session is used, if any. And when none of that gives a language, or the text is clearly in a language with no pack, every pack reads it, so a name is never lost to a wrong guess. A session (`Anonymizer::create()`) tells it once for all the strings it is given, so a short message is read in the conversation's language. When several languages read the same name and give it different genders, it gets none. A given name that is also a word (Rosa, Stella, Graça) is the word right after an article ("la Rosa de los Vientos").
 
 Names are multicultural, whatever the language: each pack's recognizer knows its own full lists and the frequent names and surnames of the others, those borne by at least 1 in 100,000 people of their source (born since 1945 in the birth registers). So "Begoña Arrizabalaga" is found in an English text and "Giuseppe Rossi" in a Spanish one, while a name too rare abroad to tell from a word is not taken: the US records list "General" as a given name, and "Dirección General de Seguridad" is no person.
 
@@ -275,6 +275,9 @@ Prints every span the anonymizer would replace (type, value, offset, confidence)
 | English (`en`) | SSN, UK NINO, passports (context-gated), US/UK phones, ZIP codes, person names |
 | Catalan (`ca`) | person names with the Spanish rules and the INE data (which covers Catalonia), "i" between surnames ("Pujol i Soley"), Catalan names that are words (Llum, Neus, Roser, Pau) |
 | Italian (`it`) | person names: "Mario ROSSI" and "ROSSI Mario", particles in any case ("De Luca", "Di Stefano", "dalla Chiesa"), Sig./Sig.ra/Dott./Avv./Ing./Prof. Names from the INE data (which holds the Italians living in Spain) and the other languages' frequent ones, with a neutral gender (Andrea, Simone and Nicola are men's names in Italy). No Italian identifiers yet (codice fiscale, partita IVA) |
+| German (`de`) | person names: after the given name only known surnames, or any word right after a particle ("von der Leyen"), since German capitalizes every noun; Herr/Frau/Dr./Prof. Names and surnames from the INE data and the other languages' frequent ones, with a neutral gender |
+| Dutch (`nl`) | person names with their particles in any case ("Jan van der Berg", "Van der Berg"), dhr./mevr./mr./dr. Names and surnames from the INE data and the other languages' frequent ones, with a neutral gender |
+| Portuguese (`pt`) | person names with the Spanish rules, Dom/Dona and da/do/dos/das ("João da Silva"). Names and surnames from the INE data and the other languages' frequent ones, with a neutral gender |
 | French (`fr`) | person names: "Jean DUPONT" and "DUPONT Jean", particles in any case ("de Gaulle", "Le Pen"), M./Mme/Mlle/Me/Dr/Pr. No French identifiers yet (NIR, SIREN, SIRET) |
 
 Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gated on purpose: precision first.
@@ -298,6 +301,7 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | `data/ca/names_ambiguous.php` | 13 | hand-curated (Marian and virtue names: Llum, Neus, Roser), with the Spanish list |
 | `data/es/names_frequent.php`, `data/en/names_frequent.php`, `data/fr/names_frequent.php` | ~3,500 / ~5,000 / ~3,900 | the given names borne by at least 1 in 100,000 people of the source (INE 2025; SSA and INSEE births since 1945), used by the other languages' recognizers |
 | `data/fr/surnames_frequent.php` | ~14,500 | the same for INSEE surnames (births 1941-2000) |
+| `data/pt/names_ambiguous.php` | 14 | hand-curated (Marian and virtue names: Graça, Esperança, Conceição), with the Spanish list |
 | `data/it/names_ambiguous.php` | 21 | hand-curated (virtue, Marian and flower names: Speranza, Chiara, Stella) |
 | `data/fr/names.php` | ~22,900 | INSEE, Fichier des prénoms, births in France 1900-2024: every word of a name borne by 20 people or more |
 | `data/fr/surnames.php` | ~210,000 | INSEE, Fichier des noms, births in France 1891-2000, surnames given 30 times or more |
@@ -326,7 +330,7 @@ It is based on [patrickschur/language-detection](https://github.com/patrickschur
 
 `config/laranon.php` controls:
 
-- `locales` and `packs`: the locale packs available (`es`, `en`, `fr`, `ca` and `it`; add your own). Each text is read with the packs of its languages (see [Languages](#languages)).
+- `locales` and `packs`: the locale packs available (`es`, `en`, `fr`, `ca`, `it`, `de`, `nl` and `pt`; add your own). Each text is read with the packs of its languages (see [Languages](#languages)).
 - `universal`: recognizers that run regardless of locale.
 - `strategy` and `strategies`: the default replacement strategy and the registered ones.
 - `token_format` and `labels`: `«%s_%d»` with labels like `person => PER`, `surname => AP`, `dni => DNI`.
