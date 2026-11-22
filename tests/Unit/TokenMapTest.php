@@ -34,6 +34,59 @@ class TokenMapTest extends TestCase
         );
     }
 
+    public function test_restore_only_matches_whole_words(): void
+    {
+        $map = new TokenMap(['Rey' => 'López', 'Javier' => 'María']);
+
+        $this->assertSame('María López firma.', $map->restore('Javier Rey firma.'));
+        $this->assertSame('Reyes Católicos', $map->restore('Reyes Católicos'));
+        $this->assertSame('Monterrey y MonteRey', $map->restore('Monterrey y MonteRey'));
+        $this->assertSame('«López»', $map->restore('«Rey»'));
+    }
+
+    public function test_restore_is_single_pass_and_longest_first(): void
+    {
+        // "Vidal" restores to a real "Rey", which must not be restored again.
+        $map = new TokenMap(['Vidal' => 'Rey', 'Rey' => 'López', '«PER_1»' => 'Ana', '«PER_12»' => 'Eva']);
+
+        $this->assertSame('Rey y López', $map->restore('Vidal y Rey'));
+        $this->assertSame('Eva y Ana', $map->restore('«PER_12» y «PER_1»'));
+    }
+
+    public function test_restore_handles_maps_too_big_for_one_regex(): void
+    {
+        $entries = [];
+
+        for ($i = 1; $i <= 5000; $i++) {
+            $entries["«PER_{$i}»"] = "Persona{$i}";
+            $entries["Sustituto{$i}"] = "Original{$i}";
+        }
+
+        $map = new TokenMap($entries);
+
+        $this->assertSame('Persona4999 y Original77.', $map->restore('«PER_4999» y Sustituto77.'));
+    }
+
+    public function test_a_replacement_already_in_the_text_is_never_issued(): void
+    {
+        $always = new class implements Strategy
+        {
+            public function replacement(Span $span, int $index): string
+            {
+                return $index === 1 ? 'Rey' : 'Vidal';
+            }
+
+            public function reversible(): bool
+            {
+                return true;
+            }
+        };
+
+        $map = new TokenMap();
+
+        $this->assertSame('Vidal', $map->replacementFor(new Span(0, 5, 'surname', 'López'), $always, 'López. Lo firma el Rey.'));
+    }
+
     public function test_replacements_never_repeat_across_different_values(): void
     {
         // A degenerate strategy that always emits the same surrogate: the map

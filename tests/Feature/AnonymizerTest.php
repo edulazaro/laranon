@@ -2,9 +2,17 @@
 
 namespace EduLazaro\Laranon\Tests\Feature;
 
+use Closure;
 use EduLazaro\Laranon\Anonymizer;
+use EduLazaro\Laranon\Contracts\VaultStore;
+use EduLazaro\Laranon\Strategies\FakerStrategy;
 use EduLazaro\Laranon\Support\Checksums;
+use EduLazaro\Laranon\Support\Span;
+use EduLazaro\Laranon\Support\TokenMap;
 use EduLazaro\Laranon\Tests\TestCase;
+use EduLazaro\Laranon\Vault\ArrayVaultStore;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use ReflectionClassConstant;
 
 class AnonymizerTest extends TestCase
 {
@@ -203,6 +211,65 @@ class AnonymizerTest extends TestCase
 
         $this->assertStringContainsString('«ENT_47»', $first->text);
         $this->assertStringContainsString('«ENT_47»', $second->text);
+    }
+
+    public function test_faker_never_picks_a_surrogate_already_in_the_text(): void
+    {
+        // Whatever surname López gets, one of these texts already contains
+        // it as a plain word, and that word must restore to itself.
+        $pool = (new ReflectionClassConstant(FakerStrategy::class, 'LAST_NAMES'))->getValue();
+
+        foreach ($pool as $surname) {
+            $text = "La actora, María López, recurre. Lo firma {$surname}.";
+            $result = $this->anonymizer()->strategy('faker')->anonymize($text);
+
+            $this->assertStringNotContainsString('López', $result->text);
+            $this->assertSame($text, $result->restore($result->text), "Failed with {$surname}");
+        }
+    }
+
+    public function test_faker_never_keeps_the_original_as_its_surrogate(): void
+    {
+        $faker = new FakerStrategy('«%s_%d»', ['person' => 'PER']);
+        $pool = (new ReflectionClassConstant(FakerStrategy::class, 'FIRST_NAMES'))->getValue();
+
+        foreach ($pool as $name) {
+            $replacement = (new TokenMap())->replacementFor(new Span(0, strlen($name), 'person', $name), $faker);
+
+            $this->assertNotSame($name, $replacement, "{$name} would go out in clear");
+        }
+    }
+
+    public function test_an_earlier_surrogate_reappearing_as_a_real_word_restores_to_itself(): void
+    {
+        $session = $this->anonymizer()->strategy('faker')->newSession();
+
+        $first = $session->anonymize('La actora, María López, recurre.');
+        $surrogate = array_search('López', $session->map()->entries(), true);
+
+        $text = "En la sala estaba {$surrogate} como testigo.";
+        $second = $session->anonymize($text);
+
+        $this->assertSame('La actora, María López, recurre.', $session->restore($first));
+        $this->assertSame($text, $session->restore($second));
+    }
+
+    public function test_faker_falls_back_to_tokens_when_its_name_pool_runs_out(): void
+    {
+        $map = new TokenMap();
+        $faker = new FakerStrategy('«%s_%d»', ['person' => 'PER']);
+
+        $replacements = [];
+
+        for ($i = 0; $i < 80; $i++) {
+            $replacements[] = $map->replacementFor(new Span(0, 1, 'person', "Name{$i}"), $faker);
+        }
+
+        $this->assertCount(80, array_unique($replacements));
+
+        foreach ($replacements as $replacement) {
+            $this->assertMatchesRegularExpression('/^(\p{Lu}\p{Ll}+|«PER_\d+»)$/u', $replacement);
+        }
     }
 
     public function test_bare_name_word_reuses_the_token_from_an_earlier_turn(): void

@@ -213,7 +213,7 @@ class Anonymizer
         $replacements = [];
 
         foreach ($spans as $i => $span) {
-            $replacements[$i] = $map->replacementFor($span, $strategy);
+            $replacements[$i] = $map->replacementFor($span, $strategy, $text);
         }
 
         foreach (array_reverse($spans, true) as $i => $span) {
@@ -264,6 +264,7 @@ class Anonymizer
 
         $spans = SpanResolver::resolve($spans);
         $spans = $this->sweepKnownNameWords($text, $spans, $map);
+        $spans = $this->sweepIssuedReplacements($text, $spans, $map);
 
         usort($spans, fn (Span $a, Span $b) => $a->start <=> $b->start);
 
@@ -326,6 +327,62 @@ class Anonymizer
         return array_merge($spans, $swept);
     }
 
+    /**
+     * A replacement handed out earlier in this map ("Navarro" for López) can
+     * also show up in a new text as a real word the detectors missed. Left
+     * alone, restore() would turn that real Navarro into López. Each such
+     * occurrence is replaced too, under the type of the replacement it
+     * matches, so it gets its own surrogate and restores to itself. This runs
+     * whatever only()/except() say: skipping it would make the restore wrong.
+     *
+     * Only word-shaped surrogates are swept. A delimited token («PER_1») in
+     * the text is one of ours, so it stays as it is and anonymizing an
+     * already anonymized text changes nothing.
+     *
+     * @param array<int, Span> $spans
+     * @return array<int, Span>
+     */
+    protected function sweepIssuedReplacements(string $text, array $spans, TokenMap $map): array
+    {
+        $swept = [];
+
+        foreach ($map->replacementTypes() as $replacement => $type) {
+            $replacement = (string) $replacement;
+
+            if (! TokenMap::startsWithWordChar($replacement) || ! TokenMap::endsWithWordChar($replacement)) {
+                continue;
+            }
+
+            if (! TokenMap::occursIn($replacement, $text)) {
+                continue;
+            }
+
+            $offset = 0;
+
+            while (($found = strpos($text, $replacement, $offset)) !== false) {
+                $offset = $found + strlen($replacement);
+                $span = new Span($found, strlen($replacement), $type, $replacement);
+
+                if (! $this->isWholeWord($text, $span) || $this->overlapsAny($span, $spans) || $this->overlapsAny($span, $swept)) {
+                    continue;
+                }
+
+                $swept[] = $span;
+            }
+        }
+
+        return array_merge($spans, $swept);
+    }
+
+    protected function isWholeWord(string $text, Span $span): bool
+    {
+        if (TokenMap::startsWithWordChar($span->value) && TokenMap::endsWithWordChar(substr($text, 0, $span->start))) {
+            return false;
+        }
+
+        return ! (TokenMap::endsWithWordChar($span->value) && TokenMap::startsWithWordChar(substr($text, $span->end())));
+    }
+
     protected function typeAllowed(string $type): bool
     {
         if ($this->only !== null && ! in_array($type, $this->only, true)) {
@@ -362,7 +419,7 @@ class Anonymizer
         return match (true) {
             $map instanceof TokenMap => $map->restore($text),
             $map instanceof AnonymizedText => $map->restore($text),
-            is_array($map) => $map === [] ? $text : strtr($text, $map),
+            is_array($map) => (new TokenMap($map))->restore($text),
             default => $this->loadMap()->restore($text),
         };
     }

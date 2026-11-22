@@ -145,4 +145,16 @@ class AnonymizerSessionTest extends TestCase
             $anon->restore($reply),
         );
     }
+
+    public function test_anonymizing_an_already_anonymized_text_changes_nothing(): void
+    {
+        $anon = Anonymizer::create();
+        $clear = 'Escribe a Juan García, DNI 12345678Z.';
+
+        $once = $anon->anonymize([['role' => 'user', 'content' => $clear]], 'content');
+        $twice = $anon->anonymize($once, 'content');
+
+        $this->assertSame($once, $twice);
+        $this->assertSame($clear, $anon->restore($twice[0]['content']));
+    }
 }

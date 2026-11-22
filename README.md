@@ -28,7 +28,7 @@ $result->restore($llmResponse);
 - **Replacements never repeat.** The token map guarantees that two different values never share a replacement, whatever the strategy generates. A shared surrogate would merge two people and garble restoration.
 - **Known entities.** Feed the values you already have (client emails, phones, company names) for exact, total-recall matching where it matters most.
 - **Streaming-safe restore.** Tokens split across SSE chunks (even inside the multibyte `«`) are buffered and restored correctly.
-- **Exact restoration.** Every token maps back to the literal original text, byte for byte.
+- **Exact restoration.** Every token maps back to the literal original text, byte for byte. A replacement that starts or ends with a letter only matches as a whole word, so a surrogate "Rey" never turns "Reyes" into "Lópezes".
 
 ## Install
 
@@ -136,7 +136,7 @@ Laranon::strategy('redact')->anonymize($text); // [DNI], one-way, nothing vaulte
 ```
 
 - `token` (default): `«PER_1»`, `«DNI_1»`... reversible, ideal for LLM round-trips.
-- `faker`: realistic surrogates with the same format (a valid fake DNI for a DNI, a bare given name for a name word), reversible, ideal for natural-reading document generation. Uniqueness is enforced by the map.
+- `faker`: realistic surrogates with the same format (a valid fake DNI for a DNI, a bare given name for a name word), reversible, ideal for natural-reading document generation. Uniqueness is enforced by the map, a surrogate is never the original itself nor a word already in the text, and once the name pool (50 given names, 48 surnames) runs out the next ones fall back to `«PER_51»`-style tokens. A surrogate is still a real-looking word: if a model writes that same word on its own, restoring turns it into the original. For free LLM output, use `token`.
 - `redact`: `[DNI]`, `[PER]`... one-way, nothing can be reversed, ideal for logs and outbound scrubbing.
 
 ### Known entities

@@ -11,21 +11,43 @@ use Random\Randomizer;
 /**
  * Realistic surrogates with the same format as the original: a valid fake DNI
  * for a DNI, a fake IBAN for an IBAN, a bare given name for a 'person' word,
- * a bare surname for a 'surname' word. Seeded by (type, value, index), so the
- * TokenMap can regenerate on collision and enforce that no two different
- * values ever share a surrogate. Stability across calls comes from the
- * persisted map (scope), not from the generator. Reversible.
+ * a bare surname for a 'surname' word. Deterministic in (type, value, index),
+ * so the TokenMap can regenerate on collision and enforce that no two
+ * different values ever share a surrogate. Stability across calls comes from
+ * the persisted map (scope), not from the generator. Reversible.
+ *
+ * A surrogate is a real-looking word, so it can also be a real word of the
+ * text you restore later: the TokenMap rejects any surrogate already present
+ * in the text being anonymized, but it cannot know what a model will write.
+ * For free LLM output, prefer the token strategy.
  */
 class FakerStrategy implements Strategy
 {
+    /**
+     * Curated so that no entry is also a common Spanish word ("Clara",
+     * "Alba", "Rosa" are adjectives or nouns that a model writes often).
+     */
     protected const FIRST_NAMES = [
         'Carlos', 'Lucía', 'Andrés', 'Marta', 'Javier', 'Elena', 'Pablo', 'Sara',
-        'Hugo', 'Nora', 'Adrián', 'Clara', 'Diego', 'Irene', 'Mario', 'Alba',
+        'Hugo', 'Nora', 'Adrián', 'Irene', 'Diego', 'Mario', 'Inés', 'Álvaro',
+        'Beatriz', 'Gonzalo', 'Natalia', 'Rubén', 'Silvia', 'Sergio', 'Raquel', 'Óscar',
+        'Patricia', 'Víctor', 'Teresa', 'Daniel', 'Cristina', 'Alberto', 'Lorena', 'Ignacio',
+        'Noelia', 'Fernando', 'Susana', 'Ricardo', 'Verónica', 'Rodrigo', 'Miriam', 'Tomás',
+        'Nuria', 'Joaquín', 'Eva', 'Enrique', 'Ainhoa', 'Gabriel', 'Julia', 'Héctor',
+        'Lidia', 'Raúl',
     ];
 
+    /**
+     * Curated the same way: no "Rey", "Campos", "Fuentes" or "Bravo", which
+     * a legal text uses as plain words and would restore as a surname.
+     */
     protected const LAST_NAMES = [
-        'Navarro', 'Ortega', 'Serrano', 'Vidal', 'Campos', 'Rey', 'Ibáñez',
-        'Marín', 'Pascual', 'Soler', 'Crespo', 'Bravo', 'Lozano', 'Gallego',
+        'Navarro', 'Ortega', 'Vidal', 'Ibáñez', 'Marín', 'Méndez', 'Núñez', 'Vázquez',
+        'Domínguez', 'Benítez', 'Jiménez', 'Gutiérrez', 'Sáez', 'Ferrer', 'Salazar', 'Bermúdez',
+        'Figueroa', 'Galindo', 'Maldonado', 'Quiroga', 'Urrutia', 'Tejada', 'Varela', 'Rivas',
+        'Montoya', 'Aguirre', 'Echeverría', 'Zabala', 'Arrieta', 'Olmedo', 'Valcárcel', 'Barrientos',
+        'Cifuentes', 'Villalobos', 'Mejía', 'Ochoa', 'Sandoval', 'Pacheco', 'Escobar', 'Robledo',
+        'Saavedra', 'Herrera', 'Benavides', 'Carmona', 'Velasco', 'Andrade', 'Valdés', 'Uriarte',
     ];
 
     public function __construct(protected string $format = '«%s_%d»', protected array $labels = [])
@@ -39,8 +61,8 @@ class FakerStrategy implements Strategy
         return match ($span->type) {
             'dni' => $this->fakeDni($rng),
             'nie' => $this->fakeNie($rng),
-            'person' => self::FIRST_NAMES[$rng->getInt(0, count(self::FIRST_NAMES) - 1)],
-            'surname' => self::LAST_NAMES[$rng->getInt(0, count(self::LAST_NAMES) - 1)],
+            'person' => $this->fromPool(self::FIRST_NAMES, $span, $index),
+            'surname' => $this->fromPool(self::LAST_NAMES, $span, $index),
             'email' => 'contacto' . $rng->getInt(100, 9999) . '@example.com',
             'phone' => '6' . str_pad((string) $rng->getInt(0, 99999999), 8, '0', STR_PAD_LEFT),
             'iban' => $this->fakeIban($rng),
@@ -52,6 +74,24 @@ class FakerStrategy implements Strategy
     public function reversible(): bool
     {
         return true;
+    }
+
+    /**
+     * Consecutive indexes walk consecutive entries of the pool, so the
+     * retries of a collision try every name once. Past the end of the pool a
+     * typed token takes over, instead of a made-up "Carlos_1".
+     *
+     * @param array<int, string> $pool
+     */
+    protected function fromPool(array $pool, Span $span, int $index): string
+    {
+        $size = count($pool);
+
+        if ($index > $size) {
+            return $this->fallbackToken($span, $index);
+        }
+
+        return $pool[(crc32($span->type . '|' . $span->value) + $index) % $size];
     }
 
     protected function fakeDni(Randomizer $rng): string
