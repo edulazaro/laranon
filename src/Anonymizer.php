@@ -462,9 +462,13 @@ class Anonymizer
     }
 
     /**
-     * The languages of one paragraph, among the $available ones: the clear
-     * winner of its n-grams, or the ones with most of its grammatical words,
-     * or the ones its n-grams tie for. None when it has no letters.
+     * The languages of one paragraph, among the $available ones, from its
+     * n-grams and its grammatical words. When its n-grams have a clear
+     * winner, that one, and also the language with most grammatical words if
+     * it is another: a short line misleads the n-grams ("DNI ..., también
+     * escrito ..." scores Italian), and reading it in both loses nothing.
+     * When the n-grams tie, the language with most grammatical words, or the
+     * tied ones if it has none. None when it has no letters.
      *
      * @param array<int, string> $available
      * @return array<int, string>
@@ -480,20 +484,14 @@ class Anonymizer
 
         $best = reset($scores);
         $tied = array_keys(array_filter($scores, fn (float $score) => $best - $score <= LanguageDetector::THRESHOLD));
+        $words = $detector->wordCounts($paragraph);
+        $most = $words === [] ? [] : array_keys(array_filter($words, fn (int $count) => $count === reset($words)));
 
         if (count($tied) === 1) {
-            return $tied;
+            return array_values(array_unique([...$tied, ...$most]));
         }
 
-        $words = $detector->wordCounts($paragraph);
-
-        if ($words === []) {
-            return $tied;
-        }
-
-        $most = reset($words);
-
-        return array_keys(array_filter($words, fn (int $count) => $count === $most));
+        return $most !== [] ? $most : $tied;
     }
 
     /**
