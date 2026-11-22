@@ -25,7 +25,9 @@ class PlateRecognizer extends RegexRecognizer
     protected function patterns(): array
     {
         return [
-            '/(?<![\dA-Za-z])\d{4}' . Separators::GAP . '[BCDFGHJKLMNPRSTVWXYZ]{3}(?![\dA-Za-z])/' => 0.85,
+            // Not right after a slash: "50/1980 LCS" is the year of a
+            // number/year reference followed by an acronym.
+            '/(?<![\dA-Za-z\/])\d{4}' . Separators::GAP . '[BCDFGHJKLMNPRSTVWXYZ]{3}(?![\dA-Za-z])/' => 0.85,
             // A provincial plate looks like any reference code, so it is only
             // taken after a word that introduces a plate, on the same line,
             // and with the same separator on both sides of the digits.

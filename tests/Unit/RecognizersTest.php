@@ -75,6 +75,14 @@ class RecognizersTest extends TestCase
         $this->assertSame([], $values('Con matrícula M-1234 AB.'));
     }
 
+    public function test_the_year_of_a_reference_is_not_a_plate(): void
+    {
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, (new \EduLazaro\Laranon\Recognizers\Es\PlateRecognizer())->detect($text));
+
+        $this->assertSame([], $values('Según la Ley 50/1980 LCS y la STS 123/2019 BCN.'));
+        $this->assertSame(['1234 BCD', '1234-BCD'], $values('Matrícula 1234 BCD, antes 1234-BCD.'));
+    }
+
     public function test_a_column_of_amounts_is_not_a_card(): void
     {
         $recognizer = new \EduLazaro\Laranon\Recognizers\Universal\CreditCardRecognizer();
