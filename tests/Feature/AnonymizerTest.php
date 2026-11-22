@@ -264,7 +264,8 @@ class AnonymizerTest extends TestCase
             '600 12 31 23',       // bare mobile, 3-2-2-2
             '600-12-31-23',       // bare mobile, hyphens
             '915 123 456',        // bare landline
-            '91 123 45 67',       // bare landline, 2-3-2-2
+            '91 123 45 67',       // bare landline, 2-3-2-2 (Madrid)
+            '93 123 45 67',       // bare landline, 2-3-2-2 (Barcelona)
             '923 12 34 56',       // bare landline, 3-2-2-2
             '+34 612 345 678',    // Spain, prefixed
             '+34612345678',       // Spain, prefixed no separators
@@ -291,6 +292,13 @@ class AnonymizerTest extends TestCase
 
         $this->assertStringNotContainsString('«TEL', $result->text);
         $this->assertSame('Compró 600 unidades por 1.234,56 euros.', $result->restore($result->text));
+
+        // Nine digits grouped in a way no Spanish number is written: a mobile
+        // from two digits, a landline from two digits outside Madrid and
+        // Barcelona.
+        foreach (['Expediente 71 2345 678.', 'Expediente 60 0123 123.', 'Referencia 98 512 34 56.'] as $reference) {
+            $this->assertSame($reference, $this->anonymizer()->anonymize($reference)->text);
+        }
 
         // Nine digits followed by a currency or a percent are an amount.
         foreach (['600.000.000 euros', '912 000 000 €', '700.000.000 EUR', '600 000 000 %'] as $amount) {
