@@ -20,6 +20,10 @@ use Random\Randomizer;
  * text you restore later: the TokenMap rejects any surrogate already present
  * in the text being anonymized, but it cannot know what a model will write.
  * For free LLM output, prefer the token strategy.
+ *
+ * With $gender, a given name of known gender gets a surrogate of the same
+ * gender, so "María" never becomes "Carlos" and the text keeps its
+ * agreement.
  */
 class FakerStrategy implements Strategy
 {
@@ -27,15 +31,23 @@ class FakerStrategy implements Strategy
      * Curated so that no entry is also a common Spanish word ("Clara",
      * "Alba", "Rosa" are adjectives or nouns that a model writes often).
      */
-    protected const FIRST_NAMES = [
-        'Carlos', 'Lucía', 'Andrés', 'Marta', 'Javier', 'Elena', 'Pablo', 'Sara',
-        'Hugo', 'Nora', 'Adrián', 'Irene', 'Diego', 'Mario', 'Inés', 'Álvaro',
-        'Beatriz', 'Gonzalo', 'Natalia', 'Rubén', 'Silvia', 'Sergio', 'Raquel', 'Óscar',
-        'Patricia', 'Víctor', 'Teresa', 'Daniel', 'Cristina', 'Alberto', 'Lorena', 'Ignacio',
-        'Noelia', 'Fernando', 'Susana', 'Ricardo', 'Verónica', 'Rodrigo', 'Miriam', 'Tomás',
-        'Nuria', 'Joaquín', 'Eva', 'Enrique', 'Ainhoa', 'Gabriel', 'Julia', 'Héctor',
-        'Lidia', 'Raúl',
+    protected const FEMALE_NAMES = [
+        'Lucía', 'Marta', 'Elena', 'Sara', 'Nora', 'Irene', 'Inés', 'Beatriz',
+        'Natalia', 'Silvia', 'Raquel', 'Patricia', 'Teresa', 'Cristina', 'Lorena', 'Noelia',
+        'Susana', 'Verónica', 'Miriam', 'Nuria', 'Eva', 'Ainhoa', 'Julia', 'Lidia',
     ];
+
+    protected const MALE_NAMES = [
+        'Carlos', 'Andrés', 'Javier', 'Pablo', 'Hugo', 'Adrián', 'Diego', 'Mario',
+        'Álvaro', 'Gonzalo', 'Rubén', 'Sergio', 'Óscar', 'Víctor', 'Daniel', 'Alberto',
+        'Ignacio', 'Fernando', 'Ricardo', 'Rodrigo', 'Tomás', 'Joaquín', 'Enrique', 'Gabriel',
+        'Héctor', 'Raúl',
+    ];
+
+    /**
+     * Both, for a given name of unknown gender.
+     */
+    protected const FIRST_NAMES = [...self::FEMALE_NAMES, ...self::MALE_NAMES];
 
     /**
      * Curated the same way: no "Rey", "Campos", "Fuentes" or "Bravo", which
@@ -50,8 +62,11 @@ class FakerStrategy implements Strategy
         'Saavedra', 'Herrera', 'Benavides', 'Carmona', 'Velasco', 'Andrade', 'Valdés', 'Uriarte',
     ];
 
-    public function __construct(protected string $format = '«%s_%d»', protected array $labels = [])
-    {
+    public function __construct(
+        protected string $format = '«%s_%d»',
+        protected array $labels = [],
+        protected bool $gender = true,
+    ) {
     }
 
     public function replacement(Span $span, int $index): string
@@ -61,7 +76,7 @@ class FakerStrategy implements Strategy
         return match ($span->type) {
             'dni' => $this->fakeDni($rng),
             'nie' => $this->fakeNie($rng),
-            'person' => $this->fromPool(self::FIRST_NAMES, $span, $index),
+            'person' => $this->fromPool($this->givenNames($span), $span, $index),
             'surname' => $this->fromPool(self::LAST_NAMES, $span, $index),
             'email' => 'contacto' . $rng->getInt(100, 9999) . '@example.com',
             'phone' => '6' . str_pad((string) $rng->getInt(0, 99999999), 8, '0', STR_PAD_LEFT),
@@ -74,6 +89,21 @@ class FakerStrategy implements Strategy
     public function reversible(): bool
     {
         return true;
+    }
+
+    /**
+     * The pool for a given name: of its gender when known and $gender is on.
+     * With $gender off both are used, so the surrogate does not reveal it.
+     *
+     * @return array<int, string>
+     */
+    protected function givenNames(Span $span): array
+    {
+        return match ($this->gender ? $span->gender : null) {
+            'f' => self::FEMALE_NAMES,
+            'm' => self::MALE_NAMES,
+            default => self::FIRST_NAMES,
+        };
     }
 
     /**
@@ -149,6 +179,10 @@ class FakerStrategy implements Strategy
     protected function fallbackToken(Span $span, int $index): string
     {
         $label = $this->labels[$span->type] ?? strtoupper($span->type);
+
+        if ($this->gender && $span->gender !== null) {
+            $label .= '_' . strtoupper($span->gender);
+        }
 
         return sprintf($this->format, $label, $index);
     }

@@ -465,6 +465,17 @@ class AnonymizerTest extends TestCase
         }
     }
 
+    public function test_faker_keeps_the_gender_of_a_given_name(): void
+    {
+        $female = (new ReflectionClassConstant(FakerStrategy::class, 'FEMALE_NAMES'))->getValue();
+        $male = (new ReflectionClassConstant(FakerStrategy::class, 'MALE_NAMES'))->getValue();
+
+        $entries = $this->anonymizer()->strategy('faker')->anonymize('Comparecen María López y Juan Pérez.')->map->entries();
+
+        $this->assertContains(array_search('María', $entries, true), $female);
+        $this->assertContains(array_search('Juan', $entries, true), $male);
+    }
+
     public function test_faker_never_keeps_the_original_as_its_surrogate(): void
     {
         $faker = new FakerStrategy('«%s_%d»', ['person' => 'PER']);
