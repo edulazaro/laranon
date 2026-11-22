@@ -324,6 +324,26 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Juan', 'García'], $values("Juan García\nLópez Ruiz comparece."));
     }
 
+    public function test_a_name_gets_every_word_even_after_words_that_open_the_sentence(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame(['JUAN', 'GARCÍA', 'LÓPEZ'], $values('EL ACUSADO JUAN GARCÍA LÓPEZ.'));
+        $this->assertSame(['Juan', 'García', 'Pérez', 'López'], $values('Comparece Juan García Pérez López.'));
+    }
+
+    public function test_a_name_on_each_line_is_found_on_every_line(): void
+    {
+        $recognizer = new PersonNameRecognizer();
+        $values = fn (string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame(
+            ['Antonio', 'García', 'Martínez', 'Manuel', 'Almenar', 'Belenguer'],
+            $values("Antonio García Martínez\nManuel Almenar Belenguer"),
+        );
+    }
+
     public function test_an_honorific_on_the_next_line_starts_a_name_of_its_own(): void
     {
         $spans = SpanResolver::resolve((new PersonNameRecognizer())->detect("Magistrados:\nD. Antonio García Martínez\nD. Manuel\nD.ª Luz\nDña. Pilar Ruiz"));

@@ -222,17 +222,66 @@ abstract class NameRecognizer implements Recognizer
             }
         }
 
-        if (preg_match_all($this->namePattern(), $text, $matches, PREG_OFFSET_CAPTURE)) {
-            foreach ($matches[0] as [$value, $offset]) {
-                array_push($spans, ...$this->resolveCandidate($value, $offset));
-            }
-        }
+        array_push($spans, ...$this->scanNames(
+            $this->namePattern(),
+            fn (string $word) => $this->opensName($word),
+            fn (string $value, int $offset) => $this->resolveCandidate($value, $offset),
+        ));
 
         $upper = $this->upperNamePattern();
 
-        if ($upper !== null && preg_match_all($upper, $text, $matches, PREG_OFFSET_CAPTURE)) {
-            foreach ($matches[0] as [$value, $offset]) {
-                array_push($spans, ...$this->resolveUpperCandidate($value, $offset));
+        if ($upper !== null) {
+            array_push($spans, ...$this->scanNames(
+                $upper,
+                fn (string $word) => $this->opensUpperName($word),
+                fn (string $value, int $offset) => $this->resolveUpperCandidate($value, $offset),
+            ));
+        }
+
+        return $spans;
+    }
+
+    /**
+     * Runs a name pattern over the text so that no name is lost to what a
+     * match took around it. A match that starts before its first given name
+     * ("EL ACUSADO JUAN GARCÍA", "Comparece Juan García Pérez") is tried again
+     * from that name, so the name gets every word the pattern allows
+     * ("JUAN GARCÍA LÓPEZ"). A match that runs past the end of the name (a
+     * line break, a function word) goes on from that end, so a name that
+     * starts there is found ("Antonio García Martínez⏎Manuel Almenar").
+     *
+     * @param callable(string): bool $opens whether a word opens a name
+     * @param callable(string, int): array<int, Span> $resolve
+     * @return array<int, Span>
+     */
+    protected function scanNames(string $pattern, callable $opens, callable $resolve): array
+    {
+        $spans = [];
+        $position = 0;
+
+        while (preg_match($pattern, $this->text, $match, PREG_OFFSET_CAPTURE, $position) === 1) {
+            [$value, $offset] = $match[0];
+            preg_match_all('/\S+/u', $value, $words, PREG_OFFSET_CAPTURE);
+
+            $opener = null;
+
+            foreach ($words[0] as $i => [$word]) {
+                if ($opens($word)) {
+                    $opener = $i;
+                    break;
+                }
+            }
+
+            if ($opener === null) {
+                $position = $offset + strlen($value);
+            } elseif ($opener > 0) {
+                $position = $offset + $words[0][$opener][1];
+            } else {
+                $kept = $this->nameLength($value, $offset);
+
+                array_push($spans, ...$resolve(substr($value, 0, $kept), $offset));
+
+                $position = $offset + max($kept, 1);
             }
         }
 
