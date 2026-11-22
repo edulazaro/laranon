@@ -437,6 +437,50 @@ class RecognizersTest extends TestCase
         $this->assertSame(['Vincent', 'Gogh', 'Leonardo', 'Vinci'], $values('Vincent van Gogh met Leonardo da Vinci.'));
     }
 
+    public function test_french_names_in_both_orders_with_particles_and_honorifics(): void
+    {
+        $fr = new \EduLazaro\Laranon\Recognizers\Fr\PersonNameRecognizer();
+        $typed = fn (string $text) => array_map(fn ($span) => [$span->value, $span->type], SpanResolver::resolve($fr->detect($text)));
+
+        $this->assertSame([['Jean', 'person'], ['DUPONT', 'surname']], $typed('Jean DUPONT signe.'));
+        $this->assertSame([['DUPONT', 'surname'], ['Jean', 'person']], $typed('DUPONT Jean signe.'));
+        $this->assertSame([['GALL', 'surname'], ['Yann', 'person']], $typed('LE GALL Yann signe.'));
+        $this->assertSame(
+            [['Charles', 'person'], ['Gaulle', 'surname'], ['Marine', 'person'], ['Pen', 'surname']],
+            $typed('Charles de Gaulle et Marine Le Pen.'),
+        );
+        $this->assertSame([['Durand', 'surname']], $typed('Représenté par Me Durand, avocat.'));
+        $this->assertSame([['Martin', 'surname']], $typed('Selon Mme Martin.'));
+
+        // A word in capitals after a name must be a known surname.
+        $this->assertSame([['Jean', 'person'], ['DUPONT', 'surname']], $typed('Jean DUPONT SARL.'));
+    }
+
+    public function test_french_headings_and_places_are_not_names(): void
+    {
+        $fr = new \EduLazaro\Laranon\Recognizers\Fr\PersonNameRecognizer();
+
+        foreach ([
+            'Le Tribunal judiciaire de Lyon.',
+            "Le Conseil d'État et la Cour de cassation.",
+            'Saint Louis et Sainte-Marie.',
+            'La Rose des vents.',
+            'Pour la Cour, Selon le Code civil.',
+        ] as $text) {
+            $this->assertSame([], SpanResolver::resolve($fr->detect($text)), $text);
+        }
+    }
+
+    public function test_a_french_given_name_carries_its_gender(): void
+    {
+        $fr = new \EduLazaro\Laranon\Recognizers\Fr\PersonNameRecognizer();
+        $gender = fn (string $text) => SpanResolver::resolve($fr->detect($text))[0]->gender;
+
+        $this->assertSame('m', $gender('Jean Dupont signe.'));
+        $this->assertSame('f', $gender('Marie Dupont signe.'));
+        $this->assertNull($gender('Dominique Dupont signe.'));
+    }
+
     public function test_d_ordinal_a_is_dona_not_an_initial(): void
     {
         $recognizer = new PersonNameRecognizer();

@@ -2,6 +2,7 @@
 
 use EduLazaro\Laranon\Locales\EnPack;
 use EduLazaro\Laranon\Locales\EsPack;
+use EduLazaro\Laranon\Locales\FrPack;
 use EduLazaro\Laranon\Recognizers\Universal\BicSwiftRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\CreditCardRecognizer;
 use EduLazaro\Laranon\Recognizers\Universal\EmailRecognizer;
@@ -22,7 +23,8 @@ return [
     |
     | Active locales and the pack class implementing each one. A pack returns
     | the locale-specific recognizers (national ids, phones, person names...).
-    | Universal recognizers below run regardless of locale.
+    | Universal recognizers below run regardless of locale. Add 'fr' for
+    | French person names: every active pack runs on every text.
     |
     */
 
@@ -31,6 +33,7 @@ return [
     'packs' => [
         'es' => EsPack::class,
         'en' => EnPack::class,
+        'fr' => FrPack::class,
     ],
 
     'universal' => [

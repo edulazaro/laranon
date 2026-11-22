@@ -125,6 +125,18 @@ class AnonymizerTest extends TestCase
         $this->assertSame($original, $result->restore($result->text));
     }
 
+    public function test_the_french_pack_is_off_until_its_locale_is_added(): void
+    {
+        $text = 'DUPONT Jean signe. Le Tribunal judiciaire de Lyon.';
+
+        $this->assertSame($text, $this->anonymizer()->anonymize($text)->text);
+
+        $this->app->forgetInstance(Anonymizer::class);
+        $this->app['config']->set('laranon.locales', ['es', 'en', 'fr']);
+
+        $this->assertSame('«AP_1» «PER_M_1» signe. Le Tribunal judiciaire de Lyon.', $this->anonymizer()->anonymize($text)->text);
+    }
+
     public function test_gender_can_be_turned_off(): void
     {
         $this->app['config']->set('laranon.gender', false);

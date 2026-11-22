@@ -411,15 +411,16 @@ abstract class NameRecognizer implements Recognizer
     }
 
     /**
-     * Whether the name at $offset comes right after San, Santa, Santo or
-     * Sant: a given name there is a saint or a place ("San Fernando de
-     * Henares", "Santa María del Camí", "Sant Joan Despí"), not a person.
+     * Whether the name at $offset comes right after San, Santa, Santo, Sant,
+     * Saint or Sainte: a given name there is a saint or a place ("San
+     * Fernando de Henares", "Santa María del Camí", "Sant Joan Despí",
+     * "Saint Louis"), not a person.
      */
     protected function followsSaint(int $offset): bool
     {
         $before = mb_strcut($this->text, max(0, $offset - 8), min($offset, 8));
 
-        return preg_match('/(?<!\p{L})(?i:san|santa|santo|sant)\h+$/u', $before) === 1;
+        return preg_match('/(?<!\p{L})(?i:san|santa|santo|sant|saint|sainte)\h+$/u', $before) === 1;
     }
 
     /**
@@ -658,8 +659,11 @@ abstract class NameRecognizer implements Recognizer
      * are far more frequent than bare, honorific-less mentions of such
      * names, so excluding them trades a small recall loss for a large
      * precision gain. The honorific patterns do not consult the gazetteer
-     * and are unaffected. "San", "Santa" and "Santo" open place and saint
-     * names (San Sebastián, Santa Cruz) far more often than a person's.
+     * and are unaffected. "San", "Santa", "Santo", "Sant", "Saint" and
+     * "Sainte" open place and saint names (San Sebastián, Santa Cruz, Saint
+     * Louis) far more often than a person's. The French articles (Le, Les,
+     * Du, Des) open French sentences ("Le Tribunal") whatever pack reads
+     * them; the price is that the Vietnamese surname Le stays in cleartext.
      *
      * @return array<int, string>
      */
@@ -670,12 +674,13 @@ abstract class NameRecognizer implements Recognizer
             'the', 'a', 'an',
             'don', 'dona', 'sr', 'sra', 'srta', 'dr', 'dra', 'ldo', 'lda', 'lcdo', 'lcda',
             'mr', 'mrs', 'ms', 'miss', 'prof', 'sir', 'lady',
-            'san', 'santa', 'santo',
+            'san', 'santa', 'santo', 'sant', 'saint', 'sainte',
+            'le', 'les', 'du', 'des',
         ];
     }
 
     /**
-     * The closed classes of Spanish and English grammar: prepositions,
+     * The closed classes of Spanish, English and French grammar: prepositions,
      * articles and contractions, determiners, possessives, pronouns and
      * conjunctions, plus the forms of "be" and "have". They open sentences
      * and clauses ("Esta Sala", "Si Juan García", "Sobre la base", "Per the
@@ -683,8 +688,9 @@ abstract class NameRecognizer implements Recognizer
      * or surnames (Contra, Sobre, En), but a capitalized one beside a name
      * almost always starts the text around it. They are never name words,
      * and a name ends where one appears. The particles of names (de, del,
-     * la, van, da...) are not here, and neither are the words that are also
-     * frequent names or surnames: Ella, He, Mas, Ni, Su, Tu.
+     * la, le, du, van, da...) are not here, and neither are the words that
+     * are also frequent names or surnames: Ella, Elle, He, Ma, Mas, Ni, Ou,
+     * Sa, Son, Su, Tu.
      *
      * @return array<int, string>
      */
@@ -720,6 +726,19 @@ abstract class NameRecognizer implements Recognizer
             'and', 'or', 'but', 'nor', 'yet', 'if', 'because', 'although', 'though', 'while', 'whereas',
             'unless', 'whether', 'when', 'where', 'which', 'who', 'whom', 'whose', 'what', 'why', 'how',
             'is', 'was', 'are', 'were', 'be', 'been', 'has', 'have', 'had',
+            // French contractions and articles that are not name particles.
+            'au', 'aux', 'un', 'une',
+            // French determiners and possessives.
+            'ce', 'cet', 'cette', 'ces', 'mon', 'mes', 'ton', 'ta', 'tes', 'ses', 'notre', 'nos', 'votre',
+            'vos', 'leur', 'leurs', 'tout', 'tous', 'toute', 'toutes', 'chaque', 'aucun', 'aucune', 'autre',
+            'autres', 'meme', 'tel', 'telle', 'tels', 'telles', 'ledit', 'ladite', 'lesdits', 'lesdites',
+            // French pronouns, relatives and conjunctions.
+            'celui', 'celle', 'ceux', 'celles', 'il', 'ils', 'elles', 'nous', 'vous', 'je', 'qui', 'quoi',
+            'dont', 'quand', 'comme', 'et', 'mais', 'donc', 'car',
+            // French prepositions, and the forms of etre and avoir.
+            'pour', 'par', 'sur', 'sous', 'avec', 'sans', 'dans', 'vers', 'chez', 'contre', 'depuis',
+            'pendant', 'selon', 'avant', 'apres', 'malgre', 'parmi',
+            'est', 'sont', 'etait', 'ont', 'avait',
         ];
     }
 

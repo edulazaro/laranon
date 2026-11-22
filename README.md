@@ -257,6 +257,7 @@ Prints every span the anonymizer would replace (type, value, offset, confidence)
 | Universal | email, IBAN (mod-97), credit cards (Luhn plus IIN), international phones (+cc / 00cc, any grouping), IPv4/v6, URLs, BIC/SWIFT (after the word BIC or SWIFT), known entities |
 | Spanish (`es`) | DNI, NIE, NIF K/L/M (typed `dni`), CIF, NIF-IVA (`ES` + DNI, NIE or CIF), NSS, CCC, bare phones (6xx/7xx mobiles, 9xx landlines, with or without separators), postal codes (context-gated), plates, court refs (NIG, "autos 123/2023", "expediente número 456/2023"), person names |
 | English (`en`) | SSN, UK NINO, passports (context-gated), US/UK phones, ZIP codes, person names |
+| French (`fr`, off by default) | person names: "Jean DUPONT" and "DUPONT Jean", particles in any case ("de Gaulle", "Le Pen"), M./Mme/Mlle/Me/Dr/Pr. No French identifiers yet (NIR, SIREN, SIRET) |
 
 Ambiguous formats (postal codes, plain 5-digit ZIPs, passports) are context-gated on purpose: precision first.
 
@@ -276,6 +277,10 @@ The bundled dictionaries (`data/`) are built from official sources, not toy list
 | `data/en/names.php` | ~7,300 | US SSA baby name applications, aggregate occurrences >= 100 (via [hackerb9/ssa-baby-names](https://github.com/hackerb9/ssa-baby-names)) |
 | `data/en/surnames.php` | ~162,000 | US Census Bureau, 2010 release, count >= 100 |
 | `data/en/names_ambiguous.php` | 31 | hand-curated (flower, gem and virtue names) |
+| `data/fr/names.php` | ~22,900 | INSEE, Fichier des prénoms, births in France 1900-2024: every word of a name borne by 20 people or more |
+| `data/fr/surnames.php` | ~210,000 | INSEE, Fichier des noms, births in France 1891-2000, surnames given 30 times or more |
+| `data/fr/names_gender.php` | ~21,300 | INSEE, by first given name: `f` or `m` when 95% or more share it; ambiguous names (Dominique, Claude) left out |
+| `data/fr/names_ambiguous.php` | 28 | hand-curated (virtue, flower and gem names: Rose, Claire, Constance) |
 | `data/en/names_gender.php` | ~6,200 | US SSA, 1880-2020: `f` or `m` when 95% or more of the babies given the name share it; ambiguous names (Taylor, Jordan) left out |
 
 Extend them or point `data_path` in the config to your own directory with the same filenames. Static PHP arrays are cached by opcache in shared memory, so they load once per server, not per request.
@@ -284,7 +289,7 @@ Extend them or point `data_path` in the config to your own directory with the sa
 
 `config/laranon.php` controls:
 
-- `locales` and `packs`: which locale packs run (`es`, `en` bundled; add your own).
+- `locales` and `packs`: which locale packs run (`es` and `en` by default; `fr` is bundled and runs once you add it to `locales`; add your own). Every active pack reads every text, so add only the languages your texts are in.
 - `universal`: recognizers that run regardless of locale.
 - `strategy` and `strategies`: the default replacement strategy and the registered ones.
 - `token_format` and `labels`: `«%s_%d»` with labels like `person => PER`, `surname => AP`, `dni => DNI`.
