@@ -25,11 +25,12 @@ class PersonNameRecognizer extends NameRecognizer
     }
 
     /**
-     * A capitalized name word, hyphenated parts included (Zeta-Jones).
+     * A capitalized name word (see NameRecognizer::NAME_WORD): McKellen,
+     * O'Brien, Zeta-Jones.
      */
     protected function word(): string
     {
-        return '\p{Lu}[\p{Ll}\']+(?:' . self::HYPHEN . '\p{Lu}[\p{Ll}\']+)*';
+        return self::NAME_WORD;
     }
 
     protected function firstNamesFile(): string

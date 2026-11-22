@@ -28,7 +28,7 @@ class PersonNameRecognizer extends NameRecognizer
      */
     protected function honorificName(): string
     {
-        $word = '\p{Lu}[\p{L}\']+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\']+)*';
+        $word = '\p{Lu}[\p{L}\'’]+(?:' . self::HYPHEN . '\p{Lu}[\p{L}\'’]+)*';
 
         return $word . '(?:\s+(?i:de(?:\s+l(?:a|os|as))?|del|y|e|la)\s+' . $word . '|\s+' . $word . '){0,3}';
     }
@@ -38,7 +38,8 @@ class PersonNameRecognizer extends NameRecognizer
         // All-caps names ("JUAN GARCÍA LÓPEZ"), as escrituras and court
         // documents write them. Only within a line: headings sit on their
         // own lines and must not be glued to the name above them.
-        $word = '\p{Lu}{2,}(?:' . self::HYPHEN . '\p{Lu}{2,})*';
+        $part = '(?:\p{Lu}[\'’])?\p{Lu}{2,}';
+        $word = $part . '(?:' . self::HYPHEN . $part . ')*';
 
         return '/(?<![\p{L}\p{N}])' . $word
             . '(?:\h+(?:DE(?:\h+L(?:A|OS|AS))?|DEL)\h+' . $word . '|\h+' . $word . '){1,3}(?![\p{L}\p{N}])/u';
@@ -51,7 +52,7 @@ class PersonNameRecognizer extends NameRecognizer
         // is far more often two people in a list than one person's compound
         // surname ("Ortega y Gasset"), and merging them into a single span
         // would misattribute PII across two different people.
-        $word = '\p{Lu}[\p{Ll}\']+(?:' . self::HYPHEN . '\p{Lu}[\p{Ll}\']+)*';
+        $word = self::NAME_WORD;
 
         return '/(?<![\p{L}\p{N}])' . $word
             . '(?:\s+(?:de(?:\s+l(?:a|os|as))?|del|la)\s+' . $word . '|\s+' . $word . '){1,3}(?![\p{L}\p{N}])/u';

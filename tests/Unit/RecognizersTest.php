@@ -126,6 +126,24 @@ class RecognizersTest extends TestCase
         }
     }
 
+    public function test_name_words_with_inner_capitals_and_apostrophes(): void
+    {
+        $es = new PersonNameRecognizer();
+        $en = new \EduLazaro\Laranon\Recognizers\En\PersonNameRecognizer();
+        $values = fn ($recognizer, string $text) => array_map(fn ($span) => $span->value, SpanResolver::resolve($recognizer->detect($text)));
+
+        $this->assertSame(['Juan', 'McDonald'], $values($es, 'Firma Juan McDonald.'));
+        $this->assertSame(['Eugenio', "D'Angelo"], $values($es, "Firma Eugenio D'Angelo."));
+        $this->assertSame(['Laura', "Dell'Orto"], $values($es, "Firma Laura Dell'Orto."));
+        $this->assertSame(['Leonardo', 'DiCaprio'], $values($en, 'Leonardo DiCaprio won.'));
+        $this->assertSame(['Douglas', 'MacArthur'], $values($en, 'Signed by Douglas MacArthur.'));
+        $this->assertSame(['Shaquille', 'O’Neal'], $values($en, 'Signed by Shaquille O’Neal.'));
+        $this->assertSame(['McKellen'], $values($en, 'Mr. McKellen agreed.'));
+
+        // Brands in camel case are not names: no given name opens them.
+        $this->assertSame([], $values($es, 'Pagó con PayPal y escribió por WhatsApp a YouTube.'));
+    }
+
     public function test_a_hyphenated_surname_is_one_surname_word(): void
     {
         $cases = [

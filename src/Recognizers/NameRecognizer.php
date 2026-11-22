@@ -20,6 +20,16 @@ abstract class NameRecognizer implements Recognizer
      */
     protected const HYPHEN = '[-\x{2010}\x{2011}]';
 
+    /**
+     * A capitalized name word, for patterns with the u modifier: one or more
+     * parts that each start with a capital and go on in lowercase, so any
+     * inner capital is covered (McKellen, MacArthur, DiCaprio, DeVito,
+     * LeBlanc, DuPont, VanDyke), with straight or typographic apostrophes
+     * (O'Brien, O’Neill, D'Angelo, Dell'Orto) and hyphenated parts
+     * (Pérez-Reverte). A run of capitals alone (ABC) is not a name word.
+     */
+    protected const NAME_WORD = '(?:\p{Lu}[\p{Ll}\'’]+)+(?:[-\x{2010}\x{2011}](?:\p{Lu}[\p{Ll}\'’]+)+)*';
+
     /** @var array<string, true>|null */
     protected ?array $firstNames = null;
 
